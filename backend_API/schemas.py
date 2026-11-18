@@ -261,3 +261,8 @@ class SesionRespuesta(Salida):
 
 class RespuestaMensaje(Salida):
     mensaje: str
+
+
+class UsuarioEstadoActualizar(Entrada):
+    """Cambio de estado exclusivo para administradores."""
+    estado: Annotated[bool, Field(strict=True)]

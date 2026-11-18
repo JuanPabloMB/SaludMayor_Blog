@@ -41,3 +41,18 @@ def cambiar_contrasena(db: Session, usuario: Usuario, datos: CambioContrasena):
     db.execute(update(Sesion).where(Sesion.id_usuario == usuario.id_usuario,
                Sesion.revocada.is_(False)).values(revocada=True, fecha_cierre=utc_now()))
     db.commit()
+
+
+def cambiar_estado(db: Session, administrador: Usuario, id_usuario: int, estado: bool):
+    """Conserva la cuenta y revoca sesiones al desactivarla."""
+    cuenta = db.scalar(select(Usuario).where(Usuario.id_usuario == id_usuario)
+                      .with_for_update().execution_options(populate_existing=True))
+    if cuenta is None:
+        raise HTTPException(404, 'Usuario no encontrado')
+    if cuenta.id_usuario == administrador.id_usuario or cuenta.rol == 'administrador':
+        raise HTTPException(403, 'No se permite modificar el estado de administradores')
+    cuenta.estado = estado
+    if not estado:
+        db.execute(update(Sesion).where(Sesion.id_usuario == id_usuario,
+                   Sesion.revocada.is_(False)).values(revocada=True, fecha_cierre=utc_now()))
+    return guardar(db, cuenta)

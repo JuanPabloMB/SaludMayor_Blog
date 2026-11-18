@@ -2,11 +2,11 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, File, UploadFile, Response, Request, HTTPException, Query
 from sqlalchemy import select
-from core.dependencies import Db, get_current_user, COOKIE_NAME
+from core.dependencies import Db, get_current_user, require_admin, COOKIE_NAME
 from core.config import settings
 from models import Usuario
 from schemas import (UsuarioRegistro, UsuarioActualizar, UsuarioRespuesta,
-                     UsuarioResumen, CambioContrasena, RespuestaMensaje)
+                     UsuarioResumen, CambioContrasena, RespuestaMensaje, UsuarioEstadoActualizar)
 from services import usuario_service as servicio
 from services.imagen_service import validar_imagen
 
@@ -53,3 +53,21 @@ def foto(id_usuario: int, db: Db, usuario: Actual):
         raise HTTPException(404, 'Fotografia no encontrada')
     return Response(cuenta.foto_perfil, media_type=cuenta.tipo_imagen,
                     headers={'Cache-Control':'no-store', 'X-Content-Type-Options':'nosniff'})
+
+
+Admin = Annotated[Usuario, Depends(require_admin)]
+
+@router.get('/admin', response_model=list[UsuarioRespuesta])
+def listar_cuentas(db: Db, administrador: Admin, offset: int = Query(0, ge=0), limite: int = Query(50, ge=1, le=100)):
+    return db.scalars(select(Usuario).order_by(Usuario.id_usuario).offset(offset).limit(limite)).all()
+
+@router.get('/admin/{id_usuario}', response_model=UsuarioRespuesta)
+def consultar_cuenta(id_usuario: int, db: Db, administrador: Admin):
+    cuenta = db.get(Usuario, id_usuario)
+    if cuenta is None:
+        raise HTTPException(404, 'Usuario no encontrado')
+    return cuenta
+
+@router.patch('/admin/{id_usuario}/estado', response_model=UsuarioRespuesta)
+def modificar_estado(id_usuario: int, datos: UsuarioEstadoActualizar, db: Db, administrador: Admin):
+    return servicio.cambiar_estado(db, administrador, id_usuario, datos.estado)
