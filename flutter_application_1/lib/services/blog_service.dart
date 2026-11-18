@@ -5,7 +5,7 @@ import '../models/categoria_model.dart';
 import '../models/json_model.dart';
 import '../models/post_model.dart';
 
-/// Acceso a las publicaciones y categorías mediante la API de SaludMayor.
+/// Operaciones de consulta y administración de publicaciones mediante FastAPI.
 class BlogService {
   const BlogService(this.api);
 
@@ -28,4 +28,66 @@ class BlogService {
 
   Future<Uint8List> obtenerImagen(int idBlog) =>
       api.bytes('/blog/$idBlog/imagen');
+
+  Future<PostModel> crear({
+    required int idCategoria,
+    required String titulo,
+    required String descripcion,
+    required String contenido,
+  }) async {
+    final response = await api.json(
+      'POST',
+      '/blog',
+      body: {
+        'id_categoria': idCategoria,
+        'titulo': titulo.trim(),
+        'descripcion': descripcion.trim(),
+        'contenido': contenido.trim(),
+      },
+    );
+    return PostModel.fromJson(jsonObject(response));
+  }
+
+  Future<PostModel> actualizar(
+    int idBlog, {
+    required int idCategoria,
+    required String titulo,
+    required String descripcion,
+    required String contenido,
+  }) async {
+    final response = await api.json(
+      'PATCH',
+      '/blog/$idBlog',
+      body: {
+        'id_categoria': idCategoria,
+        'titulo': titulo.trim(),
+        'descripcion': descripcion.trim(),
+        'contenido': contenido.trim(),
+      },
+    );
+    return PostModel.fromJson(jsonObject(response));
+  }
+
+  Future<void> eliminar(int idBlog) async {
+    await api.json('DELETE', '/blog/$idBlog');
+  }
+
+  Future<void> subirImagen(
+    int idBlog, {
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+  }) async {
+    await api.uploadFile(
+      'PUT',
+      '/blog/$idBlog/imagen',
+      bytes: bytes,
+      fileName: fileName,
+      mimeType: mimeType,
+    );
+  }
+
+  Future<void> eliminarImagen(int idBlog) async {
+    await api.json('DELETE', '/blog/$idBlog/imagen');
+  }
 }

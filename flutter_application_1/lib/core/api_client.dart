@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import 'api_config.dart';
 import 'api_exception.dart';
@@ -14,6 +15,7 @@ class ApiClient {
     : _client = client ?? createHttpClient(),
       _baseUri = baseUri ?? ApiConfig.baseUri,
       _storage = storage ?? const SessionStorage();
+
   final http.Client _client;
   final Uri _baseUri;
   final SessionStorage _storage;
@@ -71,6 +73,15 @@ class ApiClient {
     }
   }
 
+  dynamic _decodeJson(http.Response response) {
+    if (response.bodyBytes.isEmpty) return null;
+    try {
+      return jsonDecode(utf8.decode(response.bodyBytes));
+    } on FormatException {
+      throw const ApiException('Respuesta inválida del servidor.');
+    }
+  }
+
   Future<dynamic> json(
     String method,
     String path, {
@@ -84,15 +95,31 @@ class ApiClient {
       request.headers['Content-Type'] = 'application/json; charset=utf-8';
       request.body = jsonEncode(body);
     }
-    final response = await _send(request);
-    if (response.bodyBytes.isEmpty) {
-      return null;
-    }
-    try {
-      return jsonDecode(utf8.decode(response.bodyBytes));
-    } on FormatException {
-      throw const ApiException('Respuesta inválida del servidor.');
-    }
+    return _decodeJson(await _send(request));
+  }
+
+  /// Envía una imagen como multipart/form-data usando el campo indicado.
+  /// En Flutter Web, BrowserClient conserva las cookies HttpOnly de sesión.
+  Future<dynamic> uploadFile(
+    String method,
+    String path, {
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+    String fieldName = 'archivo',
+    bool authenticated = true,
+  }) async {
+    final request = http.MultipartRequest(method, _uri(path, null));
+    request.headers.addAll(await _headers(authenticated));
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        fieldName,
+        bytes,
+        filename: fileName,
+        contentType: MediaType.parse(mimeType),
+      ),
+    );
+    return _decodeJson(await _send(request));
   }
 
   Future<Uint8List> bytes(String path, {bool authenticated = true}) async {

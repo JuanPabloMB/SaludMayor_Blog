@@ -295,7 +295,7 @@ class _PageContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (item.label == 'Publicaciones') {
-      return PublicationsPage(api: auth.api);
+      return PublicationsPage(api: auth.api, isAdmin: isAdmin);
     }
     return ColoredBox(
       color: const Color(0xFFF8F7F0),
