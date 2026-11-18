@@ -33,3 +33,6 @@ from routers.blog import router as blog_router
 from routers.categorias import router as categorias_router
 app.include_router(blog_router)
 app.include_router(categorias_router)
+
+from routers.comentarios import router as comentarios_router
+app.include_router(comentarios_router)
