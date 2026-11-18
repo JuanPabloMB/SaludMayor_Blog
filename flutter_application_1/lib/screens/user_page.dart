@@ -1,45 +1,36 @@
 import 'package:flutter/material.dart';
 
-
-import '../models/user_model.dart';
+import '../models/legacy/user_model.dart';
 import '../services/user_service.dart';
 import '../widgets/admin_drawer.dart';
 
-
-
-
-
-
-
 class UsersPage extends StatefulWidget {
   const UsersPage({super.key});
-
 
   @override
   State<UsersPage> createState() => _UsersPageState();
 }
 
-
 class _UsersPageState extends State<UsersPage> {
   final UserService userService = UserService();
-
 
   final nombreController = TextEditingController();
   final correoController = TextEditingController();
   final passwordController = TextEditingController();
   final direccionController = TextEditingController();
 
-
   late Future<List<UserModel>> futuroUsuarios;
   String nombreUsuario = 'Usuario';
-  Map<String, dynamic> usuarioActual = {'nom_usr': 'Usuario', 'mail': '', 'tip_usr': 1};
+  Map<String, dynamic> usuarioActual = {
+    'nom_usr': 'Usuario',
+    'mail': '',
+    'tip_usr': 1,
+  };
   bool argumentoLeido = false;
-
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
 
     if (!argumentoLeido) {
       final argumento = ModalRoute.of(context)?.settings.arguments;
@@ -54,13 +45,11 @@ class _UsersPageState extends State<UsersPage> {
     }
   }
 
-
   @override
   void initState() {
     super.initState();
     futuroUsuarios = userService.obtenerUsuarios();
   }
-
 
   @override
   void dispose() {
@@ -71,46 +60,36 @@ class _UsersPageState extends State<UsersPage> {
     super.dispose();
   }
 
-
   void recargarUsuarios() {
     setState(() {
       futuroUsuarios = userService.obtenerUsuarios();
     });
   }
 
-
   void mostrarMensaje(String mensaje) {
     if (!mounted) return;
 
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensaje)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(mensaje)));
   }
-
 
   Future<void> mostrarFormulario({UserModel? usuario}) async {
     final esEdicion = usuario != null;
-
 
     nombreController.text = usuario?.nombre ?? '';
     correoController.text = usuario?.correo ?? '';
     direccionController.text = usuario?.direccion ?? '';
     passwordController.clear();
 
-
     final resultado = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         bool guardando = false;
 
-
         return StatefulBuilder(
           builder: (contextDialogo, actualizarDialogo) {
             return AlertDialog(
-              title: Text(
-                esEdicion ? 'Editar usuario' : 'Nuevo usuario',
-              ),
+              title: Text(esEdicion ? 'Editar usuario' : 'Nuevo usuario'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -130,9 +109,7 @@ class _UsersPageState extends State<UsersPage> {
                     ),
                     TextField(
                       controller: direccionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Dirección',
-                      ),
+                      decoration: const InputDecoration(labelText: 'Dirección'),
                     ),
                     if (!esEdicion)
                       TextField(
@@ -156,45 +133,31 @@ class _UsersPageState extends State<UsersPage> {
                   onPressed: guardando
                       ? null
                       : () async {
-                          final nombre =
-                              nombreController.text.trim();
-                          final correo =
-                              correoController.text.trim();
-                          final direccion =
-                              direccionController.text.trim();
-                          final password =
-                              passwordController.text;
-
+                          final nombre = nombreController.text.trim();
+                          final correo = correoController.text.trim();
+                          final direccion = direccionController.text.trim();
+                          final password = passwordController.text;
 
                           if (nombre.isEmpty || correo.isEmpty) {
-                            ScaffoldMessenger.of(dialogContext)
-                                .showSnackBar(
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
                               const SnackBar(
-                                content: Text(
-                                  'Ingresa nombre y correo',
-                                ),
+                                content: Text('Ingresa nombre y correo'),
                               ),
                             );
                             return;
                           }
-
 
                           if (!correo.contains('@')) {
-                            ScaffoldMessenger.of(dialogContext)
-                                .showSnackBar(
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
                               const SnackBar(
-                                content: Text(
-                                  'Ingresa un correo válido',
-                                ),
+                                content: Text('Ingresa un correo válido'),
                               ),
                             );
                             return;
                           }
 
-
                           if (!esEdicion && password.length < 8) {
-                            ScaffoldMessenger.of(dialogContext)
-                                .showSnackBar(
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
                               const SnackBar(
                                 content: Text(
                                   'La contraseña debe tener al menos 8 caracteres',
@@ -204,11 +167,9 @@ class _UsersPageState extends State<UsersPage> {
                             return;
                           }
 
-
                           actualizarDialogo(() {
                             guardando = true;
                           });
-
 
                           try {
                             if (esEdicion) {
@@ -216,59 +177,40 @@ class _UsersPageState extends State<UsersPage> {
                                 id: usuario.id,
                                 nombre: nombre,
                                 correo: correo,
-                                direccion: direccion.isEmpty
-                                    ? null
-                                    : direccion,
+                                direccion: direccion.isEmpty ? null : direccion,
                                 tipoUsuario: usuario.tipoUsuario,
                               );
 
-
-                              await userService.actualizarUsuario(
-                                actualizado,
-                              );
+                              await userService.actualizarUsuario(actualizado);
                             } else {
                               final nuevo = UserModel(
                                 id: 0,
                                 nombre: nombre,
                                 correo: correo,
                                 password: password,
-                                direccion: direccion.isEmpty
-                                    ? null
-                                    : direccion,
+                                direccion: direccion.isEmpty ? null : direccion,
                                 tipoUsuario: 1,
                               );
-
 
                               await userService.agregarUsuario(nuevo);
                             }
 
-
                             if (!dialogContext.mounted) return;
-
 
                             Navigator.pop(dialogContext, true);
                           } catch (e) {
                             if (!dialogContext.mounted) return;
 
-
-                            ScaffoldMessenger.of(dialogContext)
-                                .showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'No se pudo guardar: $e',
-                                ),
-                              ),
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              SnackBar(content: Text('No se pudo guardar: $e')),
                             );
-
 
                             actualizarDialogo(() {
                               guardando = false;
                             });
                           }
                         },
-                  child: Text(
-                    esEdicion ? 'Actualizar' : 'Guardar',
-                  ),
+                  child: Text(esEdicion ? 'Actualizar' : 'Guardar'),
                 ),
               ],
             );
@@ -277,10 +219,8 @@ class _UsersPageState extends State<UsersPage> {
       },
     );
 
-
     if (resultado == true && mounted) {
       recargarUsuarios();
-
 
       mostrarMensaje(
         esEdicion
@@ -290,15 +230,12 @@ class _UsersPageState extends State<UsersPage> {
     }
   }
 
-
   Future<void> eliminarUsuario(UserModel usuario) async {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Eliminar usuario'),
-        content: Text(
-          '¿Deseas eliminar a ${usuario.nombre}?',
-        ),
+        content: Text('¿Deseas eliminar a ${usuario.nombre}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -312,16 +249,12 @@ class _UsersPageState extends State<UsersPage> {
       ),
     );
 
-
     if (confirmar != true || !mounted) return;
-
 
     try {
       await userService.eliminarUsuario(usuario.id);
 
-
       if (!mounted) return;
-
 
       recargarUsuarios();
       mostrarMensaje('Usuario eliminado correctamente');
@@ -329,7 +262,6 @@ class _UsersPageState extends State<UsersPage> {
       mostrarMensaje('No se pudo eliminar: $e');
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -339,10 +271,7 @@ class _UsersPageState extends State<UsersPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Gestión de usuarios',
-              style: TextStyle(fontSize: 18),
-            ),
+            const Text('Gestión de usuarios', style: TextStyle(fontSize: 18)),
             Text(
               'Bienvenido, $nombreUsuario',
               style: const TextStyle(fontSize: 12),
@@ -367,11 +296,8 @@ class _UsersPageState extends State<UsersPage> {
         future: futuroUsuarios,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
-
 
           if (snapshot.hasError) {
             return Center(
@@ -387,10 +313,7 @@ class _UsersPageState extends State<UsersPage> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      '${snapshot.error}',
-                      textAlign: TextAlign.center,
-                    ),
+                    Text('${snapshot.error}', textAlign: TextAlign.center),
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: recargarUsuarios,
@@ -402,26 +325,19 @@ class _UsersPageState extends State<UsersPage> {
             );
           }
 
-
           final usuarios = snapshot.data ?? [];
 
-
           if (usuarios.isEmpty) {
-            return const Center(
-              child: Text('No hay usuarios registrados'),
-            );
+            return const Center(child: Text('No hay usuarios registrados'));
           }
-
 
           return RefreshIndicator(
             onRefresh: () async {
               final nuevoFuturo = userService.obtenerUsuarios();
 
-
               setState(() {
                 futuroUsuarios = nuevoFuturo;
               });
-
 
               await nuevoFuturo;
             },
@@ -431,13 +347,10 @@ class _UsersPageState extends State<UsersPage> {
               itemBuilder: (context, index) {
                 final usuario = usuarios[index];
 
-
                 return Card(
                   margin: const EdgeInsets.only(bottom: 10),
                   child: ListTile(
-                    leading: const CircleAvatar(
-                      child: Icon(Icons.person),
-                    ),
+                    leading: const CircleAvatar(child: Icon(Icons.person)),
                     title: Text(usuario.nombre),
                     subtitle: Text(usuario.correo),
                     trailing: PopupMenuButton<String>(
@@ -449,10 +362,7 @@ class _UsersPageState extends State<UsersPage> {
                         }
                       },
                       itemBuilder: (context) => const [
-                        PopupMenuItem(
-                          value: 'editar',
-                          child: Text('Editar'),
-                        ),
+                        PopupMenuItem(value: 'editar', child: Text('Editar')),
                         PopupMenuItem(
                           value: 'eliminar',
                           child: Text('Eliminar'),

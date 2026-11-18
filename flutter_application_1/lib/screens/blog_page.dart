@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/post_model.dart';
+
+import '../models/legacy/post_model.dart';
 import '../services/post_service.dart';
 import '../widgets/post_card.dart';
 import 'post_detail_page.dart';
@@ -19,7 +20,7 @@ class _BlogPageState extends State<BlogPage> {
   Map<String, dynamic> usuarioActual = {
     'nom_usr': 'Usuario',
     'mail': '',
-    'tip_usr': 2
+    'tip_usr': 2,
   };
   bool argumentoLeido = false;
 
@@ -119,9 +120,7 @@ class _BlogPageState extends State<BlogPage> {
         future: futurePosts,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
@@ -138,10 +137,7 @@ class _BlogPageState extends State<BlogPage> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      '${snapshot.error}',
-                      textAlign: TextAlign.center,
-                    ),
+                    Text('${snapshot.error}', textAlign: TextAlign.center),
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: recargarPosts,
@@ -175,10 +171,7 @@ class _BlogPageState extends State<BlogPage> {
               const SizedBox(height: 5),
               const Text(
                 'Descubre nuevas ideas',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 20),
               ...posts.map(

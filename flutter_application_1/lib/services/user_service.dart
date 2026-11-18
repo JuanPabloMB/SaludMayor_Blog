@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
-import '../models/user_model.dart';
+
+import '../models/legacy/user_model.dart';
 
 class UserService {
   static const String baseUrl = 'http://127.0.0.1:8000';
@@ -11,19 +13,13 @@ class UserService {
         .timeout(const Duration(seconds: 10));
 
     if (respuesta.statusCode != 200) {
-      throw Exception(
-        'Error al consultar usuarios: ${respuesta.statusCode}',
-      );
+      throw Exception('Error al consultar usuarios: ${respuesta.statusCode}');
     }
 
     final List<dynamic> datos = jsonDecode(respuesta.body);
 
     return datos
-        .map(
-          (json) => UserModel.fromJson(
-            json as Map<String, dynamic>,
-          ),
-        )
+        .map((json) => UserModel.fromJson(json as Map<String, dynamic>))
         .toList();
   }
 
@@ -79,8 +75,7 @@ class UserService {
         .delete(Uri.parse('$baseUrl/usuarios/$id'))
         .timeout(const Duration(seconds: 10));
 
-    if (respuesta.statusCode != 200 &&
-        respuesta.statusCode != 204) {
+    if (respuesta.statusCode != 200 && respuesta.statusCode != 204) {
       throw Exception(_mensajeError(respuesta));
     }
   }

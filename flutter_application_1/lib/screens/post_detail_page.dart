@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-import '../models/post_model.dart';
+
+import '../models/legacy/post_model.dart';
+
 class PostDetailPage extends StatelessWidget {
   final PostModel post;
-  const PostDetailPage({
-    super.key,
-    required this.post,
-  });
+  const PostDetailPage({super.key, required this.post});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detalle de publicación'),
-      ),
+      appBar: AppBar(title: const Text('Detalle de publicación')),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -26,10 +23,7 @@ class PostDetailPage extends StatelessWidget {
                   return const SizedBox(
                     height: 150,
                     child: Center(
-                      child: Icon(
-                        Icons.image_not_supported,
-                        size: 48,
-                      ),
+                      child: Icon(Icons.image_not_supported, size: 48),
                     ),
                   );
                 },
@@ -65,10 +59,7 @@ class PostDetailPage extends StatelessWidget {
                     post.descripcion.isNotEmpty
                         ? post.descripcion
                         : 'Esta publicación no tiene descripción.',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      height: 1.6,
-                    ),
+                    style: const TextStyle(fontSize: 17, height: 1.6),
                   ),
                 ],
               ),

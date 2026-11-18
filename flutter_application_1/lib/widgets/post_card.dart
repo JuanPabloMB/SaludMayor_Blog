@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/post_model.dart';
+import '../models/legacy/post_model.dart';
 
 class PostCard extends StatelessWidget {
   static final _apiBase = Uri.parse('http://127.0.0.1:8000');
@@ -8,11 +8,7 @@ class PostCard extends StatelessWidget {
   final PostModel post;
   final VoidCallback onTap;
 
-  const PostCard({
-    super.key,
-    required this.post,
-    required this.onTap,
-  });
+  const PostCard({super.key, required this.post, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -25,9 +21,7 @@ class PostCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 18),
       elevation: 4,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: onTap,
         child: Column(
@@ -43,10 +37,7 @@ class PostCard extends StatelessWidget {
                   return const SizedBox(
                     height: 110,
                     child: Center(
-                      child: Icon(
-                        Icons.image_not_supported,
-                        size: 40,
-                      ),
+                      child: Icon(Icons.image_not_supported, size: 40),
                     ),
                   );
                 },
@@ -80,10 +71,7 @@ class PostCard extends StatelessWidget {
                     post.descripcion,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                   const SizedBox(height: 12),
                   const Row(

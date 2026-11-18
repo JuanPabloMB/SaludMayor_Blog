@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/user_model.dart';
+import '../models/legacy/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../widgets/auth_background.dart';
@@ -71,9 +71,8 @@ class _RegisterPageState extends State<RegisterPage> {
     );
 
     if (mensaje != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(mensaje)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(mensaje)));
       return;
     }
 
@@ -103,11 +102,7 @@ class _RegisterPageState extends State<RegisterPage> {
           const SnackBar(content: Text('Usuario registrado correctamente')),
         );
       } else {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/login',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Cuenta creada. Ya puedes iniciar sesión.'),
@@ -169,8 +164,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       validator: (value) =>
                           value == null || value.trim().length < 2
-                              ? 'Ingresa un nombre válido'
-                              : null,
+                          ? 'Ingresa un nombre válido'
+                          : null,
                     ),
                     const SizedBox(height: 15),
                     TextFormField(
@@ -183,8 +178,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       validator: (value) =>
                           value == null || !value.trim().contains('@')
-                              ? 'Ingresa un correo válido'
-                              : null,
+                          ? 'Ingresa un correo válido'
+                          : null,
                     ),
                     const SizedBox(height: 15),
                     TextFormField(
