@@ -36,3 +36,6 @@ app.include_router(categorias_router)
 
 from routers.comentarios import router as comentarios_router
 app.include_router(comentarios_router)
+
+from routers.valoraciones import router as valoraciones_router
+app.include_router(valoraciones_router)
