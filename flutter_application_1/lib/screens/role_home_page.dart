@@ -1,8 +1,13 @@
+
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../services/mensaje_service.dart';
 import '../widgets/primary_button.dart';
+import 'conversations_page.dart';
 import 'publications_page.dart';
 
 class RoleHomePage extends StatefulWidget {
@@ -24,6 +29,10 @@ class RoleHomePage extends StatefulWidget {
 class _RoleHomePageState extends State<RoleHomePage> {
   int _selectedIndex = 0;
   bool _closing = false;
+  int _unreadCount = 0;
+
+  late final MensajeService _mensajeService;
+  Timer? _refreshTimer;
 
   bool get _isAdmin => widget.user.esAdministrador;
 
@@ -46,6 +55,11 @@ class _RoleHomePageState extends State<RoleHomePage> {
             Icons.settings_outlined,
             Icons.settings,
           ),
+          _NavigationItem(
+            'Mensajes',
+            Icons.chat_bubble_outline,
+            Icons.chat_bubble,
+          ),
         ]
       : const [
           _NavigationItem('Inicio', Icons.home_outlined, Icons.home),
@@ -62,13 +76,52 @@ class _RoleHomePageState extends State<RoleHomePage> {
           ),
         ];
 
+  @override
+  void initState() {
+    super.initState();
+
+    _mensajeService = MensajeService(widget.auth.api);
+
+    _actualizarNoLeidos();
+
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _actualizarNoLeidos(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _actualizarNoLeidos() async {
+    try {
+      final resultado = await _mensajeService.obtenerNoLeidos();
+
+      if (!mounted) return;
+
+      if (_unreadCount != resultado.total) {
+        setState(() {
+          _unreadCount = resultado.total;
+        });
+      }
+    } catch (_) {
+      // Se conserva el último contador si falla temporalmente la API.
+    }
+  }
+
   Future<void> _logout() async {
     if (_closing) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cerrar sesión'),
-        content: const Text('¿Deseas cerrar tu sesión de SaludMayor Blog?'),
+        content: const Text(
+          '¿Deseas cerrar tu sesión de SaludMayor Blog?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -81,19 +134,27 @@ class _RoleHomePageState extends State<RoleHomePage> {
         ],
       ),
     );
+
     if (confirmed != true || !mounted) return;
 
     setState(() => _closing = true);
+
     try {
       await widget.auth.logout();
-      if (mounted) widget.onExit();
+
+      if (mounted) {
+        widget.onExit();
+      }
     } catch (_) {
       if (!mounted) return;
+
       setState(() => _closing = false);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'No se pudo cerrar la sesión. Comprueba tu conexión e inténtalo nuevamente.',
+            'No se pudo cerrar la sesión. '
+            'Comprueba tu conexión e inténtalo nuevamente.',
           ),
         ),
       );
@@ -102,7 +163,15 @@ class _RoleHomePageState extends State<RoleHomePage> {
 
   void _select(int index) {
     if (index < 0 || index >= _items.length) return;
-    setState(() => _selectedIndex = index);
+
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    if (_items[index].label == 'Mensajes') {
+      _actualizarNoLeidos();
+    }
+
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     }
@@ -141,6 +210,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
                   user: widget.user,
                   items: _items,
                   selectedIndex: _selectedIndex,
+                  unreadCount: _unreadCount,
                   onSelected: _select,
                 ),
               ),
@@ -154,6 +224,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
                 user: widget.user,
                 items: _items,
                 selectedIndex: _selectedIndex,
+                unreadCount: _unreadCount,
                 onSelected: _select,
               ),
             ),
@@ -161,11 +232,13 @@ class _RoleHomePageState extends State<RoleHomePage> {
             child: _PageContent(
               user: widget.user,
               auth: widget.auth,
+              mensajeService: _mensajeService,
               item: item,
               isAdmin: _isAdmin,
               closing: _closing,
               onSelect: _select,
               onLogout: _logout,
+              onMessagesReturned: _actualizarNoLeidos,
             ),
           ),
         ],
@@ -175,7 +248,12 @@ class _RoleHomePageState extends State<RoleHomePage> {
 }
 
 class _NavigationItem {
-  const _NavigationItem(this.label, this.icon, this.selectedIcon);
+  const _NavigationItem(
+    this.label,
+    this.icon,
+    this.selectedIcon,
+  );
+
   final String label;
   final IconData icon;
   final IconData selectedIcon;
@@ -186,17 +264,20 @@ class _NavigationMenu extends StatelessWidget {
     required this.user,
     required this.items,
     required this.selectedIndex,
+    required this.unreadCount,
     required this.onSelected,
   });
 
   final UserModel user;
   final List<_NavigationItem> items;
   final int selectedIndex;
+  final int unreadCount;
   final ValueChanged<int> onSelected;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+
     return Material(
       color: const Color(0xFFF5F3E8),
       child: Column(
@@ -227,7 +308,9 @@ class _NavigationMenu extends StatelessWidget {
                   user.nombreCompleto,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Color(0xFFE5EBDD)),
+                  style: const TextStyle(
+                    color: Color(0xFFE5EBDD),
+                  ),
                 ),
                 Text(
                   user.esAdministrador ? 'Administrador' : 'Usuario',
@@ -242,7 +325,10 @@ class _NavigationMenu extends StatelessWidget {
           const SizedBox(height: 12),
           for (var i = 0; i < items.length; i++)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 3,
+              ),
               child: ListTile(
                 selected: selectedIndex == i,
                 selectedTileColor: const Color(0xFFDCE9D9),
@@ -250,10 +336,16 @@ class _NavigationMenu extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 leading: Icon(
-                  selectedIndex == i ? items[i].selectedIcon : items[i].icon,
+                  selectedIndex == i
+                      ? items[i].selectedIcon
+                      : items[i].icon,
                   color: colors.primary,
                 ),
                 title: Text(items[i].label),
+                trailing: items[i].label == 'Mensajes' &&
+                        unreadCount > 0
+                    ? _UnreadBadge(count: unreadCount)
+                    : null,
                 onTap: () => onSelected(i),
               ),
             ),
@@ -273,30 +365,82 @@ class _NavigationMenu extends StatelessWidget {
   }
 }
 
+class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$count mensajes sin leer',
+      child: Container(
+        constraints: const BoxConstraints(
+          minWidth: 25,
+          minHeight: 25,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 7,
+          vertical: 4,
+        ),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFF24563E),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          count > 99 ? '99+' : '$count',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _PageContent extends StatelessWidget {
   const _PageContent({
     required this.user,
     required this.auth,
+    required this.mensajeService,
     required this.item,
     required this.isAdmin,
     required this.closing,
     required this.onSelect,
     required this.onLogout,
+    required this.onMessagesReturned,
   });
 
   final UserModel user;
   final AuthService auth;
+  final MensajeService mensajeService;
   final _NavigationItem item;
   final bool isAdmin;
   final bool closing;
   final ValueChanged<int> onSelect;
   final VoidCallback onLogout;
+  final VoidCallback onMessagesReturned;
 
   @override
   Widget build(BuildContext context) {
     if (item.label == 'Publicaciones') {
-      return PublicationsPage(api: auth.api, isAdmin: isAdmin);
+      return PublicationsPage(
+        api: auth.api,
+        isAdmin: isAdmin,
+      );
     }
+
+    if (item.label == 'Mensajes') {
+      return ConversationsPage(
+        user: user,
+        service: mensajeService,
+        onMessagesReturned: onMessagesReturned,
+      );
+    }
+
     return ColoredBox(
       color: const Color(0xFFF8F7F0),
       child: Center(
@@ -325,8 +469,10 @@ class _PageContent extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       isAdmin
-                          ? 'Has iniciado sesión con permisos de administrador. Desde este menú podrás acceder a las herramientas administrativas.'
-                          : 'Desde este espacio podrás consultar las publicaciones y acceder a las funciones de tu cuenta.',
+                          ? 'Has iniciado sesión con permisos de administrador. '
+                              'Desde este menú podrás acceder a las herramientas administrativas.'
+                          : 'Desde este espacio podrás consultar las publicaciones '
+                              'y acceder a las funciones de tu cuenta.',
                     ),
                     const SizedBox(height: 24),
                     const _FeatureNotice(),
@@ -350,6 +496,11 @@ class _PageContent extends StatelessWidget {
                             label: 'Categorías',
                             icon: Icons.category_outlined,
                             onTap: () => onSelect(3),
+                          ),
+                          _QuickAction(
+                            label: 'Mensajes',
+                            icon: Icons.chat_bubble_outline,
+                            onTap: () => onSelect(5),
                           ),
                         ],
                       ),
@@ -379,7 +530,9 @@ class _PageContent extends StatelessWidget {
                     SizedBox(
                       width: 190,
                       child: PrimaryButton(
-                        text: closing ? 'Cerrando sesión...' : 'Cerrar sesión',
+                        text: closing
+                            ? 'Cerrando sesión...'
+                            : 'Cerrar sesión',
                         onPressed: closing ? null : onLogout,
                       ),
                     ),
@@ -405,16 +558,22 @@ class _FeatureNotice extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFE8EFE4),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFB7C9B5)),
+        border: Border.all(
+          color: const Color(0xFFB7C9B5),
+        ),
       ),
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, color: Color(0xFF24563E)),
+          Icon(
+            Icons.info_outline,
+            color: Color(0xFF24563E),
+          ),
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'La navegación por roles ya está preparada. Las pantallas de cada módulo se conectarán en las siguientes fases.',
+              'La navegación por roles está preparada. '
+              'Las pantallas de cada módulo se conectarán en las siguientes fases.',
             ),
           ),
         ],
@@ -429,14 +588,15 @@ class _QuickAction extends StatelessWidget {
     required this.icon,
     required this.onTap,
   });
+
   final String label;
   final IconData icon;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => OutlinedButton.icon(
-    onPressed: onTap,
-    icon: Icon(icon),
-    label: Text(label),
-  );
+        onPressed: onTap,
+        icon: Icon(icon),
+        label: Text(label),
+      );
 }
