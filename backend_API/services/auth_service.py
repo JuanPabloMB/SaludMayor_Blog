@@ -1,13 +1,13 @@
 """Operaciones de autenticacion y sesiones."""
 from fastapi import HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, undefer
 from models import Usuario, Sesion
 from schemas import LoginSolicitud
 from core.security import create_token, verify_password, DUMMY_HASH, utc_now
 
 def iniciar_sesion(db: Session, datos: LoginSolicitud, transport: str):
-    usuario = db.scalar(select(Usuario).where(Usuario.correo == datos.correo))
+    usuario = db.scalar(select(Usuario).options(undefer(Usuario.contrasena)).where(Usuario.correo == datos.correo).with_for_update())
     hashed = usuario.contrasena if usuario else DUMMY_HASH
     valido = verify_password(datos.contrasena.get_secret_value(), hashed)
     if not usuario or not valido or not usuario.estado:

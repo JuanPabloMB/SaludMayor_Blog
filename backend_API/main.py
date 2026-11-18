@@ -25,3 +25,6 @@ def inicio():
     return {'mensaje': 'API SaludMayor Blog', 'version': settings.APP_VERSION}
 
 app.include_router(auth_router)
+
+from routers.usuarios import router as usuarios_router
+app.include_router(usuarios_router)
