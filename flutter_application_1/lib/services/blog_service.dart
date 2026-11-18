@@ -16,6 +16,11 @@ class BlogService {
     return jsonList(response, PostModel.fromJson);
   }
 
+  Future<PostModel> obtenerDetalle(int idBlog) async {
+    final response = await api.json('GET', '/blog/$idBlog');
+    return PostModel.fromJson(jsonObject(response));
+  }
+
   Future<List<CategoriaModel>> obtenerCategorias() async {
     final response = await api.json('GET', '/categorias');
     return jsonList(response, CategoriaModel.fromJson);

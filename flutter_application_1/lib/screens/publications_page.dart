@@ -6,6 +6,7 @@ import '../core/api_client.dart';
 import '../models/categoria_model.dart';
 import '../models/post_model.dart';
 import '../services/blog_service.dart';
+import 'post_detail_page.dart';
 
 /// Feed de publicaciones compartido por administradores y usuarios.
 class PublicationsPage extends StatefulWidget {
@@ -217,6 +218,7 @@ class _PublicationsPageState extends State<PublicationsPage> {
                 else
                   ...posts.map(
                     (post) => _PostCard(
+                      api: widget.api,
                       post: post,
                       imageFuture: post.tieneImagen
                           ? _service.obtenerImagen(post.id)
@@ -233,8 +235,13 @@ class _PublicationsPageState extends State<PublicationsPage> {
 }
 
 class _PostCard extends StatelessWidget {
-  const _PostCard({required this.post, required this.imageFuture});
+  const _PostCard({
+    required this.api,
+    required this.post,
+    required this.imageFuture,
+  });
 
+  final ApiClient api;
   final PostModel post;
   final Future<Uint8List>? imageFuture;
 
@@ -246,77 +253,86 @@ class _PostCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       color: const Color(0xFFFFFDF7),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (imageFuture != null)
-            FutureBuilder<Uint8List>(
-              future: imageFuture,
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return Image.memory(
-                    snapshot.data!,
-                    width: double.infinity,
-                    height: 210,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const _ImagePlaceholder(),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return const _ImagePlaceholder();
-                }
-
-                return const SizedBox(
-                  height: 170,
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              },
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => PostDetailPage(api: api, post: post),
             ),
-          Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Chip(
-                      label: Text(post.categoria.nombre),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    Text(
-                      _formatDate(post.fechaPublicacion),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(post.titulo, style: theme.textTheme.titleLarge),
-                const SizedBox(height: 8),
-                Text(post.descripcion, style: theme.textTheme.bodyMedium),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    const Icon(Icons.account_circle_outlined, size: 20),
-                    const SizedBox(width: 7),
-                    Expanded(
-                      child: Text(
-                        post.autor.nombreCompleto,
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (imageFuture != null)
+              FutureBuilder<Uint8List>(
+                future: imageFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return Image.memory(
+                      snapshot.data!,
+                      width: double.infinity,
+                      height: 210,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const _ImagePlaceholder(),
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    return const _ImagePlaceholder();
+                  }
+
+                  return const SizedBox(
+                    height: 170,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                },
+              ),
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Chip(
+                        label: Text(post.categoria.nombre),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      Text(
+                        _formatDate(post.fechaPublicacion),
                         style: theme.textTheme.bodySmall,
                       ),
-                    ),
-                    const Icon(Icons.article_outlined, size: 18),
-                    const SizedBox(width: 5),
-                    Text('Publicación', style: theme.textTheme.labelMedium),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(post.titulo, style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 8),
+                  Text(post.descripcion, style: theme.textTheme.bodyMedium),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      const Icon(Icons.account_circle_outlined, size: 20),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          post.autor.nombreCompleto,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
+                      const Icon(Icons.article_outlined, size: 18),
+                      const SizedBox(width: 5),
+                      Text('Publicación', style: theme.textTheme.labelMedium),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

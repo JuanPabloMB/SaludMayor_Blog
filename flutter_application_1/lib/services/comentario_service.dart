@@ -1,35 +1,35 @@
-import 'dart:convert';
+import '../core/api_client.dart';
+import '../models/comentario_model.dart';
+import '../models/json_model.dart';
 
-import 'package:http/http.dart' as http;
-
-import '../models/legacy/comentario_model.dart';
-
+/// Operaciones de lectura y creación de comentarios de una publicación.
 class ComentarioService {
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  const ComentarioService(this.api);
 
-  Future<List<ComentarioModel>> obtenerComentarios() async {
-    final respuesta = await http.get(Uri.parse('$baseUrl/comentarios'));
+  final ApiClient api;
 
-    if (respuesta.statusCode != 200) {
-      throw Exception('Error al consultar comentarios');
-    }
-
-    final List<dynamic> datos = jsonDecode(respuesta.body);
-
-    return datos
-        .map((json) => ComentarioModel.fromJson(json as Map<String, dynamic>))
-        .toList();
+  Future<List<ComentarioModel>> obtenerComentarios(
+    int idBlog, {
+    int offset = 0,
+    int limite = 50,
+  }) async {
+    final response = await api.json(
+      'GET',
+      '/blog/$idBlog/comentarios',
+      query: {'offset': '$offset', 'limite': '$limite'},
+    );
+    return jsonList(response, ComentarioModel.fromJson);
   }
 
-  Future<void> agregarComentario(ComentarioModel comentario) async {
-    final respuesta = await http.post(
-      Uri.parse('$baseUrl/comentarios'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(comentario.toJsonCrear()),
+  Future<ComentarioModel> agregarComentario(
+    int idBlog,
+    String comentario,
+  ) async {
+    final response = await api.json(
+      'POST',
+      '/blog/$idBlog/comentarios',
+      body: {'comentario': comentario.trim()},
     );
-
-    if (respuesta.statusCode != 201) {
-      throw Exception('No se pudo registrar el comentario: ${respuesta.body}');
-    }
+    return ComentarioModel.fromJson(jsonObject(response));
   }
 }
