@@ -1,285 +1,241 @@
 import 'package:flutter/material.dart';
 
-import '../models/legacy/user_model.dart';
-import '../services/auth_service.dart';
-import '../services/user_service.dart';
-import '../widgets/auth_background.dart';
+import '../core/api_client.dart';
+import '../core/api_exception.dart';
+import '../services/registration_service.dart';
 import '../widgets/auth_card.dart';
+import '../widgets/primary_button.dart';
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
-
+  const RegisterPage({super.key, this.service});
+  final RegistrationService? service;
   @override
   State<RegisterPage> createState() => _RegisterPageState();
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  final _formKey = GlobalKey<FormState>();
-  final nombreController = TextEditingController();
-  final correoController = TextEditingController();
-  final direccionController = TextEditingController();
-  final passwordController = TextEditingController();
-  final confirmarPasswordController = TextEditingController();
-
-  final AuthService authService = AuthService();
-  final UserService userService = UserService();
-
-  Map<String, dynamic> _usuarioAdministrador = {};
-  bool _argumentoLeido = false;
-  bool _esRegistroAdministrativo = false;
-  bool _guardando = false;
-  int _tipoUsuario = 2;
+  final _form = GlobalKey<FormState>();
+  final _nombre = TextEditingController();
+  final _paterno = TextEditingController();
+  final _materno = TextEditingController();
+  final _correo = TextEditingController();
+  final _password = TextEditingController();
+  final _confirm = TextEditingController();
+  ApiClient? _ownedApi;
+  late final RegistrationService _service;
+  bool _busy = false;
+  bool _hidden = true;
+  String? _error;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_argumentoLeido) return;
-
-    final argumento = ModalRoute.of(context)?.settings.arguments;
-    if (argumento is Map<String, dynamic> &&
-        argumento['id_usr'] != null &&
-        (argumento['tip_usr'] as num? ?? 2).toInt() == 1) {
-      _usuarioAdministrador = Map<String, dynamic>.from(argumento);
-      _esRegistroAdministrativo = true;
-    }
-    _argumentoLeido = true;
+  void initState() {
+    super.initState();
+    _service = widget.service ?? RegistrationService(_ownedApi = ApiClient());
   }
 
   @override
   void dispose() {
-    nombreController.dispose();
-    correoController.dispose();
-    direccionController.dispose();
-    passwordController.dispose();
-    confirmarPasswordController.dispose();
+    for (final controller in [
+      _nombre,
+      _paterno,
+      _materno,
+      _correo,
+      _password,
+      _confirm,
+    ]) {
+      controller.dispose();
+    }
+    _ownedApi?.close();
     super.dispose();
   }
 
-  Future<void> registrarUsuario() async {
-    if (_guardando || !_formKey.currentState!.validate()) return;
+  String? _name(String? value, int max, {bool optional = false}) {
+    final text = (value ?? '').trim();
+    if (text.isEmpty && !optional) {
+      return 'Este campo es obligatorio';
+    }
+    if (text.runes.length > max) {
+      return 'Máximo $max caracteres';
+    }
+    return null;
+  }
 
-    final nombre = nombreController.text.trim();
-    final correo = correoController.text.trim();
-    final direccion = direccionController.text.trim();
-    final password = passwordController.text;
-
-    final mensaje = authService.validarRegistro(
-      nombre: nombre,
-      correo: correo,
-      password: password,
-      confirmarpassword: confirmarPasswordController.text,
-    );
-
-    if (mensaje != null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(mensaje)));
+  Future<void> _submit() async {
+    if (_busy || !_form.currentState!.validate()) {
       return;
     }
-
-    setState(() => _guardando = true);
-
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     try {
-      await userService.agregarUsuario(
-        UserModel(
-          id: 0,
-          nombre: nombre,
-          correo: correo,
-          password: password,
-          direccion: direccion.isEmpty ? null : direccion,
-          tipoUsuario: _tipoUsuario,
-        ),
+      await _service.register(
+        nombre: _nombre.text,
+        apellidoPaterno: _paterno.text,
+        apellidoMaterno: _materno.text.trim().isEmpty ? null : _materno.text,
+        correo: _correo.text,
+        contrasena: _password.text,
       );
-
-      if (!mounted) return;
-
-      if (_esRegistroAdministrativo) {
-        Navigator.pushReplacementNamed(
-          context,
-          '/users',
-          arguments: _usuarioAdministrador,
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Usuario registrado correctamente')),
-        );
-      } else {
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cuenta creada. Ya puedes iniciar sesión.'),
-          ),
-        );
+      if (!mounted) {
+        return;
       }
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'No se pudo registrar el usuario: '
-            '${e.toString().replaceFirst('Exception: ', '')}',
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _guardando = false);
+      setState(() => _busy = false);
+      Navigator.of(context).pop(true);
+    } on ApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _error = switch (error.statusCode) {
+          409 => 'El correo ya está registrado.',
+          422 => 'Revisa los datos ingresados.',
+          500 => 'El servidor no pudo completar el registro.',
+          null => error.message,
+          _ => 'No se pudo completar el registro.',
+        };
+        _busy = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = 'No se pudo confirmar el registro. Verifica tus datos antes de reintentar.';
+          _busy = false;
+        });
+      }
     }
   }
 
+  Widget _field(
+    TextEditingController controller,
+    String label,
+    String? Function(String?) validator, {
+    bool secret = false,
+    TextInputType? keyboard,
+    List<String>? autofill,
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 16),
+    child: TextFormField(
+      controller: controller,
+      enabled: !_busy,
+      validator: validator,
+      keyboardType: keyboard,
+      autofillHints: autofill,
+      obscureText: secret && _hidden,
+      autocorrect: !secret,
+      enableSuggestions: !secret,
+      decoration: InputDecoration(
+        labelText: label,
+        suffixIcon: secret
+            ? IconButton(
+                tooltip: _hidden
+                    ? 'Mostrar contraseñas'
+                    : 'Ocultar contraseñas',
+                onPressed: _busy
+                    ? null
+                    : () => setState(() => _hidden = !_hidden),
+                icon: Icon(_hidden ? Icons.visibility : Icons.visibility_off),
+              )
+            : null,
+      ),
+    ),
+  );
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: AuthBackground(
-        child: Center(
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Crear cuenta')),
+    body: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
           child: AuthCard(
-            child: Form(
-              key: _formKey,
-              child: SingleChildScrollView(
+            child: AutofillGroup(
+              child: Form(
+                key: _form,
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(
-                      Icons.person_add,
-                      size: 65,
-                      color: Color(0xFF2196F3),
-                    ),
-                    const SizedBox(height: 15),
                     Text(
-                      _esRegistroAdministrativo
-                          ? 'REGISTRAR USUARIO'
-                          : 'CREAR CUENTA',
-                      style: const TextStyle(
-                        fontSize: 27,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF08245C),
-                      ),
+                      'Regístrate',
+                      style: Theme.of(context).textTheme.headlineSmall,
                     ),
-                    const SizedBox(height: 25),
-                    TextFormField(
-                      controller: nombreController,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Nombre completo',
-                        prefixIcon: Icon(Icons.person),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) =>
-                          value == null || value.trim().length < 2
-                          ? 'Ingresa un nombre válido'
-                          : null,
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Completa tus datos. El apellido materno es opcional.',
                     ),
-                    const SizedBox(height: 15),
-                    TextFormField(
-                      controller: correoController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Correo electrónico',
-                        prefixIcon: Icon(Icons.email),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) =>
-                          value == null || !value.trim().contains('@')
-                          ? 'Ingresa un correo válido'
-                          : null,
+                    const SizedBox(height: 24),
+                    _field(
+                      _nombre,
+                      'Nombre',
+                      (v) => _name(v, 100),
+                      autofill: [AutofillHints.givenName],
                     ),
-                    const SizedBox(height: 15),
-                    TextFormField(
-                      controller: direccionController,
-                      keyboardType: TextInputType.streetAddress,
-                      textCapitalization: TextCapitalization.sentences,
-                      maxLength: 200,
-                      decoration: const InputDecoration(
-                        labelText: 'Dirección (opcional)',
-                        prefixIcon: Icon(Icons.location_on_outlined),
-                        border: OutlineInputBorder(),
-                      ),
+                    _field(_paterno, 'Apellido paterno', (v) => _name(v, 60)),
+                    _field(
+                      _materno,
+                      'Apellido materno (opcional)',
+                      (v) => _name(v, 60, optional: true),
                     ),
-                    const SizedBox(height: 15),
-                    DropdownButtonFormField<int>(
-                      initialValue: _tipoUsuario,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Nivel de usuario',
-                        prefixIcon: Icon(Icons.admin_panel_settings),
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem<int>(
-                          value: 1,
-                          child: Text('Nivel 1 — Administrador'),
-                        ),
-                        DropdownMenuItem<int>(
-                          value: 2,
-                          child: Text('Nivel 2 — General'),
-                        ),
-                      ],
-                      onChanged: _guardando
+                    _field(
+                      _correo,
+                      'Correo electrónico',
+                      (v) {
+                        final text = (v ?? '').trim();
+                        return text.length <= 150 &&
+                                RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+                                    .hasMatch(text)
+                            ? null
+                            : 'Ingresa un correo válido';
+                      },
+                      keyboard: TextInputType.emailAddress,
+                      autofill: [AutofillHints.email],
+                    ),
+                    _field(
+                      _password,
+                      'Contraseña',
+                      (v) {
+                        final text = v ?? '';
+                        return text.trim().isEmpty ||
+                                text.runes.length < 8 ||
+                                text.runes.length > 128
+                            ? 'Usa entre 8 y 128 caracteres'
+                            : null;
+                      },
+                      secret: true,
+                      autofill: [AutofillHints.newPassword],
+                    ),
+                    _field(
+                      _confirm,
+                      'Confirmar contraseña',
+                      (v) => v == _password.text && (v ?? '').isNotEmpty
                           ? null
-                          : (value) {
-                              if (value != null) {
-                                setState(() => _tipoUsuario = value);
-                              }
-                            },
+                          : 'Las contraseñas no coinciden',
+                      secret: true,
                     ),
-                    const SizedBox(height: 15),
-                    TextFormField(
-                      controller: passwordController,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Contraseña',
-                        prefixIcon: Icon(Icons.lock),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) => value == null || value.length < 8
-                          ? 'La contraseña debe tener al menos 8 caracteres'
-                          : null,
-                    ),
-                    const SizedBox(height: 15),
-                    TextFormField(
-                      controller: confirmarPasswordController,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Confirmar contraseña',
-                        prefixIcon: Icon(Icons.lock_outline),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) => value != passwordController.text
-                          ? 'Las contraseñas no coinciden'
-                          : null,
-                    ),
-                    const SizedBox(height: 25),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _guardando ? null : registrarUsuario,
-                        child: Text(
-                          _guardando ? 'REGISTRANDO...' : 'REGISTRARME',
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            _error!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
                         ),
                       ),
+                    if (_busy) const Center(child: CircularProgressIndicator()),
+                    const SizedBox(height: 8),
+                    PrimaryButton(
+                      text: _busy ? 'Registrando...' : 'Registrarme',
+                      onPressed: _busy ? null : _submit,
                     ),
-                    const SizedBox(height: 15),
                     TextButton(
-                      onPressed: _guardando
+                      onPressed: _busy
                           ? null
-                          : () {
-                              if (_esRegistroAdministrativo) {
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  '/users',
-                                  arguments: _usuarioAdministrador,
-                                );
-                              } else {
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  '/login',
-                                );
-                              }
-                            },
-                      child: Text(
-                        _esRegistroAdministrativo
-                            ? 'Volver a gestión de usuarios'
-                            : 'Ya tengo una cuenta',
-                      ),
+                          : () => Navigator.of(context).pop(),
+                      child: const Text('Volver'),
                     ),
                   ],
                 ),
@@ -288,6 +244,6 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }
