@@ -9,10 +9,14 @@ class SessionStorage {
   Future<String?> read() async =>
       kIsWeb ? null : await _storage.read(key: _key);
   Future<void> save(String token) async {
-    if (!kIsWeb) await _storage.write(key: _key, value: token);
+    if (!kIsWeb) {
+      await _storage.write(key: _key, value: token);
+    }
   }
 
   Future<void> clear() async {
-    if (!kIsWeb) await _storage.delete(key: _key);
+    if (!kIsWeb) {
+      await _storage.delete(key: _key);
+    }
   }
 }

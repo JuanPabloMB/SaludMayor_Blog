@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
 
 import '../services/registration_service.dart';
+import '../services/auth_service.dart';
+import '../models/user_model.dart';
+import 'login_user_page.dart';
 import '../theme/app_colors.dart';
 import '../widgets/auth_card.dart';
 import '../widgets/primary_button.dart';
 import 'register_user_page.dart';
 
 class WelcomePage extends StatelessWidget {
-  const WelcomePage({super.key, required this.service});
+  const WelcomePage({
+    super.key,
+    required this.service,
+    required this.auth,
+    required this.onLogin,
+  });
   final RegistrationService service;
+  final AuthService auth;
+  final ValueChanged<UserModel> onLogin;
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('SaludMayor Blog')),
@@ -55,14 +65,21 @@ class WelcomePage extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 12),
-                const OutlinedButton(
-                  onPressed: null,
-                  child: Text('Iniciar sesión'),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'El inicio de sesión estará disponible en la siguiente fase.',
-                  textAlign: TextAlign.center,
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () async {
+                      final user = await Navigator.of(context).push<UserModel>(
+                        MaterialPageRoute(
+                          builder: (_) => LoginPage(service: auth),
+                        ),
+                      );
+                      if (user != null && context.mounted) {
+                        onLogin(user);
+                      }
+                    },
+                    child: const Text('Iniciar sesión'),
+                  ),
                 ),
               ],
             ),

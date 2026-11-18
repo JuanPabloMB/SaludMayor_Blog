@@ -1,164 +1,183 @@
 import 'package:flutter/material.dart';
 
+import '../core/api_exception.dart';
 import '../services/auth_service.dart';
-import '../widgets/auth_background.dart';
 import '../widgets/auth_card.dart';
-import '../widgets/custom_text_field.dart';
 import '../widgets/primary_button.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, required this.service});
+  final AuthService service;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController usuarioController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final AuthService authService = AuthService();
-
-  bool ocultarPassword = true;
-  bool cargando = false;
+  final _form = GlobalKey<FormState>();
+  final _correo = TextEditingController();
+  final _password = TextEditingController();
+  bool _busy = false;
+  bool _hidden = true;
+  String? _error;
 
   @override
   void dispose() {
-    usuarioController.dispose();
-    passwordController.dispose();
+    _correo.dispose();
+    _password.dispose();
     super.dispose();
   }
 
-  Future<void> iniciarSesion() async {
-    final mensaje = authService.validarLogin(
-      usuario: usuarioController.text,
-      password: passwordController.text,
-    );
-
-    if (mensaje != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(mensaje)),
-      );
+  Future<void> _submit() async {
+    if (_busy || !_form.currentState!.validate()) {
       return;
     }
-
-    setState(() => cargando = true);
-
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     try {
-      final usuario = await authService.autenticar(
-        correo: usuarioController.text,
-        password: passwordController.text,
-      );
-
-      if (!mounted) return;
-
-      final tipoUsuario = (usuario['tip_usr'] as num).toInt();
-
-      if (tipoUsuario == 1 || tipoUsuario == 2) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          tipoUsuario == 1 ? '/users' : '/blog',
-          (route) => false,
-          arguments: usuario,
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('El tipo de usuario no tiene acceso asignado'),
-          ),
-        );
+      final user = await widget.service.login(_correo.text, _password.text);
+      if (!mounted) {
+        return;
       }
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-        ),
-      );
-    } finally {
+      _password.clear();
+      setState(() => _busy = false);
+      Navigator.of(context).pop(user);
+    } on ApiException catch (error) {
       if (mounted) {
-        setState(() => cargando = false);
+        setState(() {
+          _busy = false;
+          _error = switch (error.statusCode) {
+            401 => 'Correo o contraseña incorrectos, o cuenta no disponible.',
+            403 => 'No se autorizó el acceso. Verifica la configuración del servidor.',
+            422 => 'Revisa los datos ingresados.',
+            null => error.message,
+            _ => 'No se pudo iniciar sesión.',
+          };
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = 'No se pudo confirmar la sesión. Intenta nuevamente.';
+        });
       }
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: AuthBackground(
+  Widget build(BuildContext context) => PopScope(
+    canPop: !_busy,
+    child: Scaffold(
+      appBar: AppBar(title: const Text('Iniciar sesión')),
+      body: SafeArea(
         child: Center(
-          child: AuthCard(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.lock,
-                  size: 65,
-                  color: Color(0xFFC9A227),
-                ),
-                const SizedBox(height: 15),
-                const Text(
-                  'INICIAR SESIÓN',
-                  style: TextStyle(
-                    fontSize: 27,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF08245C),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: AuthCard(
+              child: AutofillGroup(
+                child: Form(
+                  key: _form,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Icon(
+                        Icons.lock_outline,
+                        size: 64,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Accede a tu cuenta',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      TextFormField(
+                        controller: _correo,
+                        enabled: !_busy,
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.username],
+                        autocorrect: false,
+                        decoration: const InputDecoration(
+                          labelText: 'Correo electrónico',
+                          prefixIcon: Icon(Icons.email_outlined),
+                        ),
+                        validator: (v) {
+                          final text = (v ?? '').trim();
+                          return text.length <= 150 &&
+                                  RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+                                      .hasMatch(text)
+                              ? null
+                              : 'Ingresa un correo válido';
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _password,
+                        enabled: !_busy,
+                        obscureText: _hidden,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        autofillHints: const [AutofillHints.password],
+                        validator: (v) =>
+                            (v ?? '').isEmpty || v!.runes.length > 128
+                            ? 'Ingresa tu contraseña (máximo 128 caracteres)'
+                            : null,
+                        decoration: InputDecoration(
+                          labelText: 'Contraseña',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            tooltip: _hidden
+                                ? 'Mostrar contraseña'
+                                : 'Ocultar contraseña',
+                            onPressed: _busy
+                                ? null
+                                : () => setState(() => _hidden = !_hidden),
+                            icon: Icon(
+                              _hidden ? Icons.visibility : Icons.visibility_off,
+                            ),
+                          ),
+                        ),
+                        onFieldSubmitted: (_) => _submit(),
+                      ),
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Semantics(
+                            liveRegion: true,
+                            child: Text(
+                              _error!,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                      if (_busy)
+                        const Center(child: CircularProgressIndicator()),
+                      PrimaryButton(
+                        text: _busy ? 'Ingresando...' : 'Iniciar sesión',
+                        onPressed: _busy ? null : _submit,
+                      ),
+                      TextButton(
+                        onPressed: _busy
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                        child: const Text('Volver'),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 25),
-                CustomTextField(
-                  controller: usuarioController,
-                  label: 'Correo electrónico',
-                  prefixIcon: Icons.person,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 15),
-                CustomTextField(
-                  controller: passwordController,
-                  label: 'Contraseña',
-                  prefixIcon: Icons.lock_outline,
-                  obscureText: ocultarPassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      ocultarPassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                    ),
-                    onPressed: () {
-                      setState(() => ocultarPassword = !ocultarPassword);
-                    },
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {},
-                    child: const Text('¿Olvidaste tu contraseña?'),
-                  ),
-                ),
-                const SizedBox(height: 5),
-                PrimaryButton(
-                  text: cargando ? 'VALIDANDO...' : 'INGRESAR',
-                  onPressed: cargando ? () {} : iniciarSesion,
-                ),
-                const SizedBox(height: 15),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('¿No tienes cuenta?'),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/register');
-                      },
-                      child: const Text('Registrarse'),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }

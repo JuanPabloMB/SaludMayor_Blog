@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_application_1/main.dart';
+import 'package:flutter_application_1/core/session_storage.dart';
 import 'package:flutter_application_1/theme/app_theme.dart';
 import 'package:flutter_application_1/theme/app_colors.dart';
 import 'package:flutter_application_1/widgets/primary_button.dart';
 import 'package:flutter_application_1/widgets/custom_text_field.dart';
 import 'package:flutter_application_1/widgets/category_chip.dart';
 
+class EmptyStorage extends SessionStorage {
+  const EmptyStorage();
+  @override
+  Future<String?> read() async => null;
+}
+
 void main() {
   testWidgets('Arranque e identidad visual', (tester) async {
-    await tester.pumpWidget(const LoginApp());
+    await tester.pumpWidget(const LoginApp(storage: EmptyStorage()));
+    await tester.pumpAndSettle();
     expect(find.text('SaludMayor Blog'), findsOneWidget);
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.theme!.colorScheme.primary, AppColors.primary);

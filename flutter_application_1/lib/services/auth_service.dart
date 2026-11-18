@@ -1,121 +1,75 @@
+import 'package:flutter/foundation.dart';
 
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import '../core/api_client.dart';
+import '../core/api_exception.dart';
+import '../core/session_storage.dart';
+import '../models/auth_model.dart';
+import '../models/json_model.dart';
+import '../models/request_models.dart';
+import '../models/user_model.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  const AuthService(this.api, {this.storage = const SessionStorage()});
+  final ApiClient api;
+  final SessionStorage storage;
 
-  String? validarLogin({
-    required String usuario,
-    required String password,
-  }) {
-    if (usuario.trim().isEmpty || password.isEmpty) {
-      return 'Ingresa tu correo y contraseña';
+  Future<UserModel> login(String correo, String contrasena) async {
+    final body = RequestModels.login(correo, contrasena);
+    if (kIsWeb) {
+      final result = await api.json(
+        'POST',
+        '/auth/login',
+        body: body,
+        authenticated: false,
+      );
+      return LoginModel.fromJson(jsonObject(result)).usuario;
     }
-    return null;
-  }
-
-  String? validarRegistro({
-    required String nombre,
-    required String correo,
-    required String password,
-    required String confirmarpassword,
-  }) {
-    if (nombre.isEmpty ||
-        correo.isEmpty ||
-        password.isEmpty ||
-        confirmarpassword.isEmpty) {
-      return 'Completa todos los campos';
-    }
-
-    if (!correo.contains('@')) {
-      return 'Ingresa un correo válido';
-    }
-
-    if (password.length < 8) {
-      return 'La contraseña debe tener al menos 8 caracteres';
-    }
-
-    if (password != confirmarpassword) {
-      return 'Las contraseñas no coinciden';
-    }
-
-    return null;
-  }
-
-  Future<Map<String, dynamic>> registrarUsuario({
-    required String nombre,
-    required String correo,
-    required String password,
-    String? direccion,
-    int tipoUsuario = 1,
-  }) async {
-    final respuesta = await http.post(
-      Uri.parse('$baseUrl/usuarios'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({
-        'nom_usr': nombre.trim(),
-        'mail': correo.trim().toLowerCase(),
-        'password': password,
-        'dir_usr': direccion,
-        'tip_usr': tipoUsuario,
-      }),
-    ).timeout(const Duration(seconds: 10));
-
-    final dynamic resultado = respuesta.body.isNotEmpty
-        ? jsonDecode(respuesta.body)
-        : null;
-
-    if ((respuesta.statusCode == 200 || respuesta.statusCode == 201) &&
-        resultado is Map<String, dynamic>) {
-      return resultado;
-    }
-
-    if (resultado is Map && resultado['detail'] != null) {
-      throw Exception(resultado['detail'].toString());
-    }
-
-    throw Exception('No se pudo registrar el usuario (HTTP ${respuesta.statusCode})');
-  }
-
-  Future<Map<String, dynamic>> autenticar({
-    required String correo,
-    required String password,
-  }) async {
-    final respuesta = await http
-        .post(
-          Uri.parse('$baseUrl/login'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: jsonEncode({
-            'mail': correo.trim().toLowerCase(),
-            'password': password,
-          }),
-        )
-        .timeout(const Duration(seconds: 10));
-
-    final dynamic resultado = jsonDecode(respuesta.body);
-
-    if (respuesta.statusCode == 200 &&
-        resultado is Map<String, dynamic>) {
-      return resultado;
-    }
-
-    if (respuesta.statusCode == 401) {
-      throw Exception('Correo o contraseña incorrectos');
-    }
-
-    if (resultado is Map && resultado['detail'] != null) {
-      throw Exception(resultado['detail'].toString());
-    }
-
-    throw Exception(
-      'Error al iniciar sesión: HTTP ${respuesta.statusCode}',
+    final result = await api.json(
+      'POST',
+      '/auth/token',
+      body: body,
+      authenticated: false,
     );
+    final token = TokenModel.fromJson(jsonObject(result));
+    if (token.tokenType != 'bearer' || token.accessToken.isEmpty) {
+      throw const ApiException('Respuesta de autenticación inválida.');
+    }
+    await storage.save(token.accessToken);
+    try {
+      return await currentUser();
+    } catch (_) {
+      await storage.clear();
+      rethrow;
+    }
+  }
+
+  Future<UserModel> currentUser() async =>
+      UserModel.fromJson(jsonObject(await api.json('GET', '/auth/me')));
+
+  Future<UserModel?> restore() async {
+    if (!kIsWeb && (await storage.read()) == null) {
+      return null;
+    }
+    try {
+      return await currentUser();
+    } on ApiException catch (error) {
+      if (error.statusCode != 401) {
+        rethrow;
+      }
+      await storage.clear();
+      return null;
+    }
+  }
+
+  /// No informa éxito si el servidor no confirmó la revocación.
+  Future<void> logout() async {
+    try {
+      await api.json('POST', '/auth/logout');
+    } on ApiException catch (error) {
+      if (error.statusCode != 401) {
+        rethrow;
+      }
+    }
+    await storage.clear();
   }
 }
