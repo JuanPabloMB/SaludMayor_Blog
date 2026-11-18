@@ -266,3 +266,13 @@ class RespuestaMensaje(Salida):
 class UsuarioEstadoActualizar(Entrada):
     """Cambio de estado exclusivo para administradores."""
     estado: Annotated[bool, Field(strict=True)]
+
+
+class ConversacionRespuesta(Salida):
+    usuario: UsuarioResumen
+    ultimo_mensaje: MensajeRespuesta
+    no_leidos: Annotated[int, Field(ge=0)]
+
+
+class MensajesPendientes(Salida):
+    total: Annotated[int, Field(ge=0)]

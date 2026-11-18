@@ -42,3 +42,6 @@ app.include_router(valoraciones_router)
 
 from routers.reacciones import router as reacciones_router
 app.include_router(reacciones_router)
+
+from routers.mensajes import router as mensajes_router
+app.include_router(mensajes_router)
