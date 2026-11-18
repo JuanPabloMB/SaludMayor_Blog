@@ -1,30 +1,74 @@
-import os
 
-from dotenv import load_dotenv
+"""
+Archivo: database.py
+
+Descripcion:
+Establece la conexion con la base de datos MySQL
+mediante SQLAlchemy y administra las sesiones
+utilizadas por el backend de SaludMayor Blog.
+
+Autor:
+Equipo SaludMayor.
+"""
+
+from collections.abc import Generator
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from sqlalchemy.engine import URL
-load_dotenv()
-url = URL.create(
+from sqlalchemy.orm import declarative_base, sessionmaker, Session
+
+from core.config import settings
+
+
+# Configuracion de la conexion
+DATABASE_URL = URL.create(
     drivername="mysql+pymysql",
-    username=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD"),
-    host=os.getenv("DB_HOST", "127.0.0.1"),
-    port=int(os.getenv("DB_PORT", "3306")),
-    database=os.getenv("DB_NAME", "bd_aplicacion_movil"),
-    query={"charset": "utf8mb4"},
+    username=settings.DB_USER,
+    password=settings.DB_PASSWORD,
+    host=settings.DB_HOST,
+    port=settings.DB_PORT,
+    database=settings.DB_NAME,
+    query={
+        "charset": "utf8mb4"
+    }
 )
-engine = create_engine(url, pool_pre_ping=True)
+
+
+# Motor de conexion
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+    echo=False
+)
+
+
+# Fabrica de sesiones
 SessionLocal = sessionmaker(
     bind=engine,
     autocommit=False,
-    autoflush=False,
+    autoflush=False
 )
-class Base(DeclarativeBase):
-    pass
-def obtener_sesion():
+
+
+# Clase base para los modelos
+Base = declarative_base()
+
+
+def get_db() -> Generator[Session, None, None]:
+    """
+    Proporciona una sesion de base de datos
+    y garantiza su cierre al finalizar.
+    """
+
     db = SessionLocal()
+
     try:
         yield db
+
+    except Exception:
+        db.rollback()
+        raise
+
     finally:
         db.close()
