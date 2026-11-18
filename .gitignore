@@ -1,0 +1,55 @@
+
+# Variables de entorno y credenciales
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# Archivos temporales del backend
+uploads/
+*.log
+
+# Flutter y Dart
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+.pub-cache/
+.pub/
+
+# Android
+.gradle/
+local.properties
+key.properties
+*.jks
+*.keystore
+android/app/debug/
+android/app/profile/
+android/app/release/
+
+# Entornos de desarrollo
+.vscode/
+.idea/
+*.iml
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos comprimidos y ejecutables
+*.zip
+*.rar
+*.apk
+*.aab
