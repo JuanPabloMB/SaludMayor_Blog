@@ -4,13 +4,14 @@ import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../models/comentario_model.dart';
+import '../models/json_model.dart';
 import '../models/post_model.dart';
+import '../models/user_model.dart';
 import '../models/valoracion_model.dart';
 import '../services/blog_service.dart';
 import '../services/comentario_service.dart';
 import '../services/valoracion_service.dart';
 
-/// Detalle de una publicación con comentarios y valoración integrada.
 class PostDetailPage extends StatefulWidget {
   const PostDetailPage({super.key, required this.api, required this.post});
 
@@ -23,21 +24,30 @@ class PostDetailPage extends StatefulWidget {
 
 class _PostDetailPageState extends State<PostDetailPage> {
   late final BlogService _blogService = BlogService(widget.api);
+
   late final ComentarioService _comentarioService = ComentarioService(
     widget.api,
   );
+
   late final ValoracionService _valoracionService = ValoracionService(
     widget.api,
   );
 
   final TextEditingController _commentController = TextEditingController();
+
   late PostModel _post = widget.post;
+
+  UserModel? _currentUser;
   List<ComentarioModel> _comments = const [];
   ValoracionResumen? _rating;
+
   bool _loading = true;
   bool _sendingComment = false;
   bool _savingRating = false;
+
   String? _error;
+
+  final Set<int> _deletingComments = {};
 
   @override
   void initState() {
@@ -56,21 +66,27 @@ class _PostDetailPageState extends State<PostDetailPage> {
       _loading = true;
       _error = null;
     });
+
     try {
-      final results = await Future.wait<Object>([
+      final results = await Future.wait<dynamic>([
         _blogService.obtenerDetalle(widget.post.id),
         _comentarioService.obtenerComentarios(widget.post.id),
         _valoracionService.obtenerResumen(widget.post.id),
+        widget.api.json('GET', '/auth/me'),
       ]);
+
       if (!mounted) return;
+
       setState(() {
         _post = results[0] as PostModel;
         _comments = results[1] as List<ComentarioModel>;
         _rating = results[2] as ValoracionResumen;
+        _currentUser = UserModel.fromJson(jsonObject(results[3]));
         _loading = false;
       });
     } catch (error) {
       if (!mounted) return;
+
       setState(() {
         _error = _friendlyError(error);
         _loading = false;
@@ -80,58 +96,161 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
   String _friendlyError(Object error) {
     final message = error.toString();
+
     if (message.contains('401')) {
       return 'Tu sesión ya no está disponible. Inicia sesión nuevamente.';
     }
-    if (message.contains('404')) {
-      return 'Esta publicación ya no está disponible.';
+
+    if (message.contains('403')) {
+      return 'No tienes permisos para realizar esta operación.';
     }
+
+    if (message.contains('404')) {
+      return 'Esta publicación o comentario ya no está disponible.';
+    }
+
     if (message.contains('servidor') || message.contains('comunicar')) {
       return 'No fue posible conectar con SaludMayor. Comprueba que el servidor esté activo.';
     }
+
     return 'No fue posible cargar toda la información. Inténtalo nuevamente.';
   }
 
   Future<void> _sendComment() async {
     final text = _commentController.text.trim();
+
     if (text.isEmpty || _sendingComment) return;
+
     if (text.length > 4000) {
       _showMessage('El comentario no puede superar los 4000 caracteres.');
       return;
     }
+
     setState(() => _sendingComment = true);
+
     try {
       final comment = await _comentarioService.agregarComentario(
         _post.id,
         text,
       );
+
       if (!mounted) return;
+
       setState(() {
         _comments = [..._comments, comment];
         _commentController.clear();
         _sendingComment = false;
       });
+
       _showMessage('Tu comentario se publicó correctamente.');
     } catch (error) {
       if (!mounted) return;
+
       setState(() => _sendingComment = false);
+      _showMessage(_friendlyError(error));
+    }
+  }
+
+  bool _canDeleteComment(ComentarioModel comment) {
+    final user = _currentUser;
+
+    if (user == null) return false;
+
+    return user.esAdministrador || comment.usuarioId == user.id;
+  }
+
+  Future<void> _confirmDeleteComment(ComentarioModel comment) async {
+    if (!_canDeleteComment(comment) || _deletingComments.contains(comment.id)) {
+      return;
+    }
+
+    final isOwnComment = comment.usuarioId == _currentUser?.id;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          isOwnComment ? 'Eliminar mi comentario' : 'Moderar comentario',
+        ),
+        content: Text(
+          isOwnComment
+              ? '¿Estás seguro de que deseas eliminar tu comentario?'
+              : '¿Deseas eliminar el comentario de ${comment.usuario.nombreCompleto}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext, false);
+            },
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF9B3D35),
+            ),
+            onPressed: () {
+              Navigator.pop(dialogContext, true);
+            },
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    await _deleteComment(comment);
+  }
+
+  Future<void> _deleteComment(ComentarioModel comment) async {
+    if (_deletingComments.contains(comment.id)) return;
+
+    setState(() {
+      _deletingComments.add(comment.id);
+    });
+
+    try {
+      await _comentarioService.eliminarComentario(_post.id, comment.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        _comments = _comments.where((item) => item.id != comment.id).toList();
+
+        _deletingComments.remove(comment.id);
+      });
+
+      _showMessage('El comentario se eliminó correctamente.');
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _deletingComments.remove(comment.id);
+      });
+
       _showMessage(_friendlyError(error));
     }
   }
 
   Future<void> _saveRating(int score) async {
     if (_savingRating) return;
+
     setState(() => _savingRating = true);
+
     try {
       final rating = await _valoracionService.guardar(_post.id, score);
+
       if (!mounted) return;
+
       setState(() {
         _rating = rating;
         _savingRating = false;
       });
+
       _showMessage('Tu valoración se guardó correctamente.');
     } catch (error) {
       if (!mounted) return;
+
       setState(() => _savingRating = false);
       _showMessage(_friendlyError(error));
     }
@@ -228,6 +347,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
   Widget _buildRatingSection() {
     final rating = _rating;
+
     return _SectionCard(
       title: 'Valoración',
       icon: Icons.star_outline,
@@ -303,7 +423,14 @@ class _PostDetailPageState extends State<PostDetailPage> {
               ),
             )
           else
-            ..._comments.map((comment) => _CommentTile(comment: comment)),
+            ..._comments.map(
+              (comment) => _CommentTile(
+                comment: comment,
+                canDelete: _canDeleteComment(comment),
+                deleting: _deletingComments.contains(comment.id),
+                onDelete: () => _confirmDeleteComment(comment),
+              ),
+            ),
           const Divider(height: 28),
           TextField(
             controller: _commentController,
@@ -362,7 +489,11 @@ class _PostImage extends StatelessWidget {
             ),
           );
         }
-        if (snapshot.hasError) return const _ImageFallback();
+
+        if (snapshot.hasError) {
+          return const _ImageFallback();
+        }
+
         return const SizedBox(
           height: 220,
           child: Center(child: CircularProgressIndicator()),
@@ -399,8 +530,10 @@ class _AuthorLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = post.fechaPublicacion.toLocal();
+
     final formatted =
         '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+
     return Wrap(
       spacing: 12,
       runSpacing: 8,
@@ -467,15 +600,25 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _CommentTile extends StatelessWidget {
-  const _CommentTile({required this.comment});
+  const _CommentTile({
+    required this.comment,
+    required this.canDelete,
+    required this.deleting,
+    required this.onDelete,
+  });
 
   final ComentarioModel comment;
+  final bool canDelete;
+  final bool deleting;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final date = comment.fechaComentario.toLocal();
+
     final formatted =
         '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -506,6 +649,22 @@ class _CommentTile extends StatelessWidget {
               ],
             ),
           ),
+          if (canDelete)
+            deleting
+                ? const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : IconButton(
+                    tooltip: 'Eliminar comentario',
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline),
+                    color: const Color(0xFF9B3D35),
+                  ),
         ],
       ),
     );
