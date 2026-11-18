@@ -28,3 +28,8 @@ app.include_router(auth_router)
 
 from routers.usuarios import router as usuarios_router
 app.include_router(usuarios_router)
+
+from routers.blog import router as blog_router
+from routers.categorias import router as categorias_router
+app.include_router(blog_router)
+app.include_router(categorias_router)
