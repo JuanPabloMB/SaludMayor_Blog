@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../widgets/primary_button.dart';
-
+import 'publications_page.dart';
 
 class RoleHomePage extends StatefulWidget {
   const RoleHomePage({
@@ -160,6 +160,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
           Expanded(
             child: _PageContent(
               user: widget.user,
+              auth: widget.auth,
               item: item,
               isAdmin: _isAdmin,
               closing: _closing,
@@ -275,6 +276,7 @@ class _NavigationMenu extends StatelessWidget {
 class _PageContent extends StatelessWidget {
   const _PageContent({
     required this.user,
+    required this.auth,
     required this.item,
     required this.isAdmin,
     required this.closing,
@@ -283,6 +285,7 @@ class _PageContent extends StatelessWidget {
   });
 
   final UserModel user;
+  final AuthService auth;
   final _NavigationItem item;
   final bool isAdmin;
   final bool closing;
@@ -291,6 +294,9 @@ class _PageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (item.label == 'Publicaciones') {
+      return PublicationsPage(api: auth.api);
+    }
     return ColoredBox(
       color: const Color(0xFFF8F7F0),
       child: Center(
