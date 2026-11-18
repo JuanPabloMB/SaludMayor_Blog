@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'theme/app_theme.dart';
 import 'theme/app_colors.dart';
+import 'core/api_client.dart';
+import 'core/api_exception.dart';
+import 'services/connection_service.dart';
 
 void main() => runApp(const LoginApp());
 
@@ -38,11 +41,64 @@ class LoginApp extends StatelessWidget {
                   'Información para el cuidado del adulto mayor.',
                   textAlign: TextAlign.center,
                 ),
+                const SizedBox(height: 24),
+                const ConnectionPanel(),
               ],
             ),
           ),
         ),
       ),
     ),
+  );
+}
+
+/// Diagnóstico temporal, sin habilitar las rutas privadas antiguas.
+class ConnectionPanel extends StatefulWidget {
+  const ConnectionPanel({super.key});
+  @override
+  State<ConnectionPanel> createState() => _ConnectionPanelState();
+}
+
+class _ConnectionPanelState extends State<ConnectionPanel> {
+  final _api = ApiClient();
+  bool _loading = false;
+  String _status = 'Conexión pendiente de comprobar';
+
+  Future<void> _check() async {
+    setState(() => _loading = true);
+    String result;
+    try {
+      result = 'Conexión exitosa: ${await ConnectionService(_api).check()}';
+    } on ApiException catch (error) {
+      result = error.message;
+    } catch (_) {
+      result = 'No fue posible comprobar la conexión.';
+    }
+    if (!mounted) return;
+    setState(() {
+      _status = result;
+      _loading = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _api.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      ElevatedButton(
+        onPressed: _loading ? null : _check,
+        child: Text(_loading ? 'Comprobando...' : 'Comprobar conexión'),
+      ),
+      const SizedBox(height: 12),
+      Semantics(
+        liveRegion: true,
+        child: Text(_status, textAlign: TextAlign.center),
+      ),
+    ],
   );
 }
