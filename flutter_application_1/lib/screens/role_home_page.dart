@@ -9,6 +9,8 @@ import '../theme/app_colors.dart';
 import '../widgets/primary_button.dart';
 import 'admin_users_page.dart';
 import 'admin_categories_page.dart';
+import 'admin_config_page.dart';
+import '../widgets/blog_identity.dart';
 import 'conversations_page.dart';
 import 'profile_view_page.dart';
 import 'publications_page.dart';
@@ -177,7 +179,10 @@ class _RoleHomePageState extends State<RoleHomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SaludMayor Blog'),
+        title: Text(
+          BlogIdentity.nameOf(context),
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -283,15 +288,11 @@ class _NavigationMenu extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.volunteer_activism,
-                  color: Colors.white,
-                  size: 38,
-                ),
+                const BlogLogo(size: 38, color: Colors.white),
                 const SizedBox(height: 12),
-                const Text(
-                  'SaludMayor Blog',
-                  style: TextStyle(
+                Text(
+                  BlogIdentity.nameOf(context),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 19,
                     fontWeight: FontWeight.bold,
@@ -419,6 +420,10 @@ class _PageContent extends StatelessWidget {
 
     if (isAdmin && item.label == 'Categorías') {
       return AdminCategoriesPage(api: auth.api);
+    }
+
+    if (isAdmin && item.label == 'Configuración') {
+      return AdminConfigPage(api: auth.api);
     }
 
     if (item.label == 'Mi perfil') {
@@ -567,8 +572,7 @@ class _FeatureNotice extends StatelessWidget {
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'La navegación por roles está preparada. '
-              'Las pantallas de cada módulo se conectarán en las siguientes fases.',
+              'Utiliza el menú para acceder a las funciones disponibles.',
             ),
           ),
         ],

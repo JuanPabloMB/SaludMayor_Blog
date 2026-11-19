@@ -4,7 +4,7 @@ import '../services/registration_service.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
 import 'login_user_page.dart';
-import '../theme/app_colors.dart';
+import '../widgets/blog_identity.dart';
 import '../widgets/auth_card.dart';
 import '../widgets/primary_button.dart';
 import 'register_user_page.dart';
@@ -21,7 +21,7 @@ class WelcomePage extends StatelessWidget {
   final ValueChanged<UserModel> onLogin;
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('SaludMayor Blog')),
+    appBar: AppBar(title: Text(BlogIdentity.nameOf(context))),
     body: SafeArea(
       child: Center(
         child: SingleChildScrollView(
@@ -30,14 +30,10 @@ class WelcomePage extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.health_and_safety_outlined,
-                  size: 80,
-                  color: AppColors.primary,
-                ),
+                const BlogLogo(size: 80),
                 const SizedBox(height: 20),
                 Text(
-                  'Bienvenido a SaludMayor',
+                  'Bienvenido a ${BlogIdentity.nameOf(context)}',
                   style: Theme.of(context).textTheme.headlineSmall,
                   textAlign: TextAlign.center,
                 ),

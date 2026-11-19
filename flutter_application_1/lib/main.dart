@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import 'core/api_client.dart';
@@ -8,6 +10,8 @@ import 'screens/session_page.dart';
 import 'services/auth_service.dart';
 import 'services/registration_service.dart';
 import 'theme/app_theme.dart';
+import 'services/branding_service.dart';
+import 'widgets/blog_identity.dart';
 
 void main() => runApp(const LoginApp());
 
@@ -22,6 +26,31 @@ class LoginApp extends StatefulWidget {
 class _LoginAppState extends State<LoginApp> {
   late final ApiClient _api = widget.api ?? ApiClient(storage: widget.storage);
   late final AuthService _auth = AuthService(_api, storage: widget.storage);
+  String _blogName = 'SaludMayor Blog';
+  Uint8List? _logo;
+  Future<void> _refreshBranding() async {
+    try {
+      final service = BrandingService(_api);
+      final config = await service.load();
+      Uint8List? logo;
+      if (config.tieneLogotipo) {
+        try {
+          logo = await service.logo();
+        } catch (_) {
+          /* Icono de respaldo. */
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _blogName = config.nombreApp;
+          _logo = logo;
+        });
+      }
+    } catch (_) {
+      /* Se conserva la identidad disponible. */
+    }
+  }
+
   UserModel? _user;
   bool _loading = true;
   bool _failed = false;
@@ -30,6 +59,7 @@ class _LoginAppState extends State<LoginApp> {
   void initState() {
     super.initState();
     _restore();
+    _refreshBranding();
   }
 
   Future<void> _restore() async {
@@ -66,7 +96,13 @@ class _LoginAppState extends State<LoginApp> {
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
-    title: 'SaludMayor Blog',
+    title: _blogName,
+    builder: (context, child) => BlogIdentity(
+      name: _blogName,
+      logo: _logo,
+      refresh: _refreshBranding,
+      child: child ?? const SizedBox.shrink(),
+    ),
     theme: AppTheme.light,
     home: _loading
         ? const Scaffold(
@@ -78,7 +114,7 @@ class _LoginAppState extends State<LoginApp> {
           )
         : _failed
         ? Scaffold(
-            appBar: AppBar(title: const Text('SaludMayor Blog')),
+            appBar: AppBar(title: Text(_blogName)),
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
