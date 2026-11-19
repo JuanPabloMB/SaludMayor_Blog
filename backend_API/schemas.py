@@ -103,6 +103,19 @@ class LoginSolicitud(Entrada):
         return TypeAdapter(EmailStr).validate_python(valor)
 
 
+class RegistroRespuesta(UsuarioRespuesta):
+    clave_recuperacion: str
+
+
+class RenovarRecuperacion(Entrada):
+    contrasena: SecretStr = Field(min_length=1, max_length=128)
+
+
+class RecuperarContrasena(CambioContrasena):
+    correo: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=150)]
+    # El campo heredado representa la clave de recuperacion, no la contrasena.
+
+
 class LoginRespuesta(Salida):
     """Respuesta web: el token se entrega en una cookie HttpOnly, no aqui."""
     usuario: UsuarioRespuesta

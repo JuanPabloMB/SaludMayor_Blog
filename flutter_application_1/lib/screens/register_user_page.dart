@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
+import 'recovery_page.dart';
 import '../core/api_exception.dart';
 import '../services/registration_service.dart';
 import '../widgets/auth_card.dart';
@@ -70,7 +71,9 @@ class _RegisterPageState extends State<RegisterPage> {
       _error = null;
     });
     try {
+      String? clave;
       await _service.register(
+        onRecoveryKey: (value) => clave = value,
         nombre: _nombre.text,
         apellidoPaterno: _paterno.text,
         apellidoMaterno: _materno.text.trim().isEmpty ? null : _materno.text,
@@ -80,6 +83,10 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) {
         return;
       }
+      if (clave != null) {
+        await mostrarClave(context, clave!);
+      }
+      if (!mounted) return;
       setState(() => _busy = false);
       Navigator.of(context).pop(true);
     } on ApiException catch (error) {

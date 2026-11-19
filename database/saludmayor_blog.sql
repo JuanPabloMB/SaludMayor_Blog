@@ -11,6 +11,7 @@ CREATE TABLE usuario (
  apellido_materno VARCHAR(60),
  correo VARCHAR(150) NOT NULL UNIQUE,
  contrasena VARCHAR(255) NOT NULL,
+ recuperacion_hash VARCHAR(255) NULL,
  rol ENUM('administrador','usuario') NOT NULL DEFAULT 'usuario',
  estado BOOLEAN NOT NULL DEFAULT TRUE,
  fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

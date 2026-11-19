@@ -13,6 +13,7 @@ class RegistrationService {
     String? apellidoMaterno,
     required String correo,
     required String contrasena,
+    void Function(String)? onRecoveryKey,
   }) async {
     final result = await api.json(
       'POST',
@@ -26,6 +27,11 @@ class RegistrationService {
         contrasena: contrasena,
       ),
     );
-    return UserModel.fromJson(jsonObject(result));
+    final data = jsonObject(result);
+    final clave = data['clave_recuperacion'];
+    if (clave is String) {
+      onRecoveryKey?.call(clave);
+    }
+    return UserModel.fromJson(data);
   }
 }

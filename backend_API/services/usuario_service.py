@@ -18,10 +18,10 @@ def guardar(db: Session, usuario: Usuario):
     db.refresh(usuario)
     return usuario
 
-def registrar(db: Session, datos: UsuarioRegistro):
+def registrar(db: Session, datos: UsuarioRegistro, clave=None):
     usuario = Usuario(**datos.model_dump(exclude={'contrasena'}),
                       contrasena=hash_password(datos.contrasena.get_secret_value()),
-                      rol='usuario', estado=True)
+                      rol='usuario', estado=True, recuperacion_hash=hash_password(clave) if clave else None)
     db.add(usuario)
     return guardar(db, usuario)
 

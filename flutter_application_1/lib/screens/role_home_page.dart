@@ -36,6 +36,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
   late UserModel _user;
   int _selectedIndex = 0;
   bool _closing = false;
+  bool _menuVisible = true;
   int _unreadCount = 0;
 
   late final MensajeService _mensajeService;
@@ -180,6 +181,13 @@ class _RoleHomePageState extends State<RoleHomePage> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: wide
+            ? IconButton(
+                tooltip: _menuVisible ? 'Ocultar menú' : 'Mostrar menú',
+                icon: Icon(_menuVisible ? Icons.menu_open : Icons.menu),
+                onPressed: () => setState(() => _menuVisible = !_menuVisible),
+              )
+            : null,
         title: Text(
           BlogIdentity.nameOf(context),
           overflow: TextOverflow.ellipsis,
@@ -223,7 +231,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
         top: false,
         child: Row(
           children: [
-            if (wide)
+            if (wide && _menuVisible)
               SizedBox(
                 width: 270,
                 child: _NavigationMenu(
@@ -235,6 +243,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
                 ),
               ),
             Expanded(
+              key: const ValueKey('contenido-principal'),
               child: _PageContent(
                 user: _user,
                 auth: widget.auth,

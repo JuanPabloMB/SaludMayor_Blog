@@ -8,6 +8,7 @@ import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 import 'change_password_dialog.dart';
+import 'recovery_page.dart';
 
 class ProfileViewPage extends StatefulWidget {
   const ProfileViewPage({
@@ -534,6 +535,22 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                       label: const Text('Cambiar contraseña'),
                     ),
                   ],
+                  OutlinedButton.icon(
+                    onPressed: _bloqueado
+                        ? null
+                        : () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => RecoveryPage(
+                                api: widget.auth.api,
+                                renovar: true,
+                              ),
+                            ),
+                          ),
+                    icon: const Icon(Icons.key),
+                    label: const Text(
+                      'Generar o renovar clave de recuperación',
+                    ),
+                  ),
                   if (_error != null) ...[
                     const SizedBox(height: 16),
                     _mensajeError(),

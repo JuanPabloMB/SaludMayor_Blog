@@ -19,6 +19,7 @@ class Usuario(Base):
     apellido_materno = mapped_column(String(60), nullable=True)
     correo = mapped_column(String(150), nullable=False, unique=True)
     contrasena = mapped_column(String(255), nullable=False, deferred=True)
+    recuperacion_hash = mapped_column(String(255), nullable=True, deferred=True)
     rol = mapped_column(ENUM('administrador','usuario'), nullable=False, server_default=text("'usuario'"))
     estado = mapped_column(Boolean, nullable=False, server_default=text('TRUE'))
     fecha_registro = mapped_column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP'))

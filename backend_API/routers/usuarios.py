@@ -13,9 +13,18 @@ from services.imagen_service import validar_imagen
 router = APIRouter(prefix='/usuarios', tags=['Usuarios'])
 Actual = Annotated[Usuario, Depends(get_current_user)]
 
-@router.post('/registro', response_model=UsuarioRespuesta, status_code=201)
+from schemas import RegistroRespuesta, RenovarRecuperacion
+from services.recuperacion_service import nueva_clave, renovar
+
+@router.post('/registro', response_model=RegistroRespuesta, status_code=201)
 def registro(datos: UsuarioRegistro, db: Db):
-    return servicio.registrar(db, datos)
+    clave = nueva_clave()
+    usuario = servicio.registrar(db, datos, clave)
+    return RegistroRespuesta(**UsuarioRespuesta.model_validate(usuario).model_dump(), clave_recuperacion=clave)
+
+@router.post('/me/recuperacion')
+def renovar_clave(datos: RenovarRecuperacion, db: Db, usuario: Actual):
+    return {'clave_recuperacion': renovar(db, usuario, datos)}
 
 @router.get('/me', response_model=UsuarioRespuesta)
 def perfil(usuario: Actual):

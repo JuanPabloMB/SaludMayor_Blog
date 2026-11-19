@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/api_exception.dart';
+import 'recovery_page.dart';
 import '../services/auth_service.dart';
 import '../widgets/auth_card.dart';
 import '../widgets/primary_button.dart';
@@ -143,6 +144,19 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         onFieldSubmitted: (_) => _submit(),
+                      ),
+                      TextButton(
+                        onPressed: _busy
+                            ? null
+                            : () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => RecoveryPage(
+                                    api: widget.service.api,
+                                    correo: _correo.text,
+                                  ),
+                                ),
+                              ),
+                        child: const Text('¿Olvidaste tu contraseña?'),
                       ),
                       if (_error != null)
                         Padding(

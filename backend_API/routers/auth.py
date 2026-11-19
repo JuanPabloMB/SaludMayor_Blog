@@ -26,6 +26,15 @@ def token_nativo(datos: LoginSolicitud, response: Response, db: Db):
     response.headers['Cache-Control'] = 'no-store'
     return TokenRespuesta(access_token=token, expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60)
 
+from schemas import RecuperarContrasena
+from services.recuperacion_service import recuperar
+
+@router.post('/recuperar', response_model=RespuestaMensaje)
+def recuperar_clave(datos: RecuperarContrasena, request: Request, db: Db):
+    validar_origen(request)
+    recuperar(db, datos)
+    return RespuestaMensaje(mensaje='Contrasena actualizada')
+
 @router.get('/me', response_model=UsuarioRespuesta)
 def me(response: Response, usuario: Annotated[Usuario, Depends(get_current_user)]):
     response.headers['Cache-Control'] = 'no-store'

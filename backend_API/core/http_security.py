@@ -65,7 +65,7 @@ class HttpSecurityMiddleware:
 
         method = scope['method']
         path = scope['path'].rstrip('/')
-        if method == 'POST' and path in {'/auth/login', '/auth/token', '/usuarios/registro'}:
+        if method == 'POST' and path in {'/auth/login', '/auth/token', '/usuarios/registro', '/auth/recuperar', '/usuarios/me/recuperacion'}:
             client = scope.get('client')
             ip = client[0] if client else 'unknown'
             if not self.limiter.allow(ip):
