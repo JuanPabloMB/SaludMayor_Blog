@@ -6,11 +6,13 @@ import '../core/api_client.dart';
 import '../models/comentario_model.dart';
 import '../models/json_model.dart';
 import '../models/post_model.dart';
+import '../models/reaccion_model.dart';
 import '../models/user_model.dart';
 import '../models/valoracion_model.dart';
 import '../services/blog_service.dart';
 import '../services/comentario_service.dart';
 import '../services/valoracion_service.dart';
+import '../services/reaccion_service.dart';
 
 class PostDetailPage extends StatefulWidget {
   const PostDetailPage({super.key, required this.api, required this.post});
@@ -32,6 +34,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
   late final ValoracionService _valoracionService = ValoracionService(
     widget.api,
   );
+
+  late final ReaccionService _reaccionService = ReaccionService(widget.api);
 
   final TextEditingController _commentController = TextEditingController();
 
@@ -425,7 +429,13 @@ class _PostDetailPageState extends State<PostDetailPage> {
           else
             ..._comments.map(
               (comment) => _CommentTile(
+                key: ValueKey(comment.id),
                 comment: comment,
+                reactions: _ReactionBar(
+                  key: ValueKey(comment.id),
+                  service: _reaccionService,
+                  id: comment.id,
+                ),
                 canDelete: _canDeleteComment(comment),
                 deleting: _deletingComments.contains(comment.id),
                 onDelete: () => _confirmDeleteComment(comment),
@@ -601,13 +611,16 @@ class _SectionCard extends StatelessWidget {
 
 class _CommentTile extends StatelessWidget {
   const _CommentTile({
+    super.key,
     required this.comment,
+    required this.reactions,
     required this.canDelete,
     required this.deleting,
     required this.onDelete,
   });
 
   final ComentarioModel comment;
+  final Widget reactions;
   final bool canDelete;
   final bool deleting;
   final VoidCallback onDelete;
@@ -646,6 +659,8 @@ class _CommentTile extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodySmall
                       ?.copyWith(color: const Color(0xFF68786A)),
                 ),
+                const SizedBox(height: 8),
+                reactions,
               ],
             ),
           ),
@@ -701,4 +716,95 @@ class _ErrorView extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _ReactionBar extends StatefulWidget {
+  const _ReactionBar({super.key, required this.service, required this.id});
+  final ReaccionService service;
+  final int id;
+
+  @override
+  State<_ReactionBar> createState() => _ReactionBarState();
+}
+
+class _ReactionBarState extends State<_ReactionBar> {
+  ReaccionResumen? _resumen;
+  bool _ocupado = true;
+  bool _error = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar([int? tipo]) async {
+    setState(() {
+      _ocupado = true;
+      _error = false;
+    });
+    try {
+      final resultado = tipo == null
+          ? await widget.service.consultar(widget.id)
+          : tipo == _resumen?.miReaccion
+          ? await widget.service.eliminar(widget.id)
+          : await widget.service.guardar(widget.id, tipo);
+      if (!mounted) return;
+      setState(() {
+        _resumen = resultado;
+        _ocupado = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = true;
+        _ocupado = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final resumen = _resumen;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (resumen != null && resumen.resultados.isNotEmpty)
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              for (final item in resumen.resultados)
+                Tooltip(
+                  message: item.tipoReaccion.nombre,
+                  child: Semantics(
+                    label: '${item.tipoReaccion.nombre}, ${item.total}',
+                    child: FilterChip(
+                      label: Text('${item.tipoReaccion.emoji} ${item.total}'),
+                      selected: resumen.miReaccion == item.tipoReaccion.id,
+                      selectedColor: const Color(0xFFB8D8BD),
+                      showCheckmark: false,
+                      onSelected: _ocupado || _error
+                          ? null
+                          : (_) => _cargar(item.tipoReaccion.id),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        if (_ocupado) const LinearProgressIndicator(),
+        if (_error)
+          TextButton.icon(
+            onPressed: () => _cargar(),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Reintentar reacciones'),
+          ),
+        if (!_ocupado &&
+            !_error &&
+            resumen != null &&
+            resumen.resultados.isEmpty)
+          const Text('No hay reacciones disponibles.'),
+      ],
+    );
+  }
 }
