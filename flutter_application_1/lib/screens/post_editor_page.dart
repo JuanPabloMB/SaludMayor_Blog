@@ -70,7 +70,10 @@ class _PostEditorPageState extends State<PostEditorPage> {
           _titleController.text = detail.titulo;
           _descriptionController.text = detail.descripcion;
           _contentController.text = detail.contenido ?? '';
-          _categoryId = detail.categoriaId;
+          final currentCategoryId = detail.categoriaId;
+          _categoryId = categories.any((c) => c.id == currentCategoryId)
+              ? currentCategoryId
+              : null;
           if (detail.tieneImagen) {
             _existingImageFuture = _service.obtenerImagen(detail.id);
           }
@@ -303,6 +306,13 @@ class _PostEditorPageState extends State<PostEditorPage> {
                             : null,
                       ),
                       const SizedBox(height: 12),
+                      if (_editing && _categoryId == null)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            'Selecciona una categoría activa para guardar esta publicación.',
+                          ),
+                        ),
                       DropdownButtonFormField<int>(
                         initialValue: _categoryId,
                         isExpanded: true,

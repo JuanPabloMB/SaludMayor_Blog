@@ -8,6 +8,7 @@ import '../services/mensaje_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/primary_button.dart';
 import 'admin_users_page.dart';
+import 'admin_categories_page.dart';
 import 'conversations_page.dart';
 import 'profile_view_page.dart';
 import 'publications_page.dart';
@@ -414,6 +415,10 @@ class _PageContent extends StatelessWidget {
 
     if (isAdmin && item.label == 'Usuarios') {
       return AdminUsersPage(api: auth.api);
+    }
+
+    if (isAdmin && item.label == 'Categorías') {
+      return AdminCategoriesPage(api: auth.api);
     }
 
     if (item.label == 'Mi perfil') {

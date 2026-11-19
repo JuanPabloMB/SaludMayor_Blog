@@ -117,6 +117,20 @@ class TokenRespuesta(Salida):
 
 
 # Categorias y publicaciones
+class CategoriaGuardar(Entrada):
+    nombre: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
+    descripcion: Annotated[str, StringConstraints(strip_whitespace=True, max_length=255)] | None = None
+
+    @field_validator('descripcion')
+    @classmethod
+    def normalizar_descripcion(cls, valor):
+        return valor or None
+
+
+class CategoriaEstadoActualizar(Entrada):
+    estado: Annotated[bool, Field(strict=True)]
+
+
 class CategoriaRespuesta(Salida):
     id_categoria: Id
     nombre: str
