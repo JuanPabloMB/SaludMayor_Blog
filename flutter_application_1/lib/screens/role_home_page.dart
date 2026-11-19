@@ -1,4 +1,3 @@
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -6,8 +5,10 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/mensaje_service.dart';
+import '../theme/app_colors.dart';
 import '../widgets/primary_button.dart';
 import 'conversations_page.dart';
+import 'profile_view_page.dart';
 import 'publications_page.dart';
 
 class RoleHomePage extends StatefulWidget {
@@ -27,6 +28,7 @@ class RoleHomePage extends StatefulWidget {
 }
 
 class _RoleHomePageState extends State<RoleHomePage> {
+  late UserModel _user;
   int _selectedIndex = 0;
   bool _closing = false;
   int _unreadCount = 0;
@@ -34,7 +36,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
   late final MensajeService _mensajeService;
   Timer? _refreshTimer;
 
-  bool get _isAdmin => widget.user.esAdministrador;
+  bool get _isAdmin => _user.esAdministrador;
 
   List<_NavigationItem> get _items => _isAdmin
       ? const [
@@ -60,6 +62,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
             Icons.chat_bubble_outline,
             Icons.chat_bubble,
           ),
+          _NavigationItem('Mi perfil', Icons.person_outline, Icons.person),
         ]
       : const [
           _NavigationItem('Inicio', Icons.home_outlined, Icons.home),
@@ -79,9 +82,9 @@ class _RoleHomePageState extends State<RoleHomePage> {
   @override
   void initState() {
     super.initState();
+    _user = widget.user;
 
     _mensajeService = MensajeService(widget.auth.api);
-
     _actualizarNoLeidos();
 
     _refreshTimer = Timer.periodic(
@@ -103,9 +106,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
       if (!mounted) return;
 
       if (_unreadCount != resultado.total) {
-        setState(() {
-          _unreadCount = resultado.total;
-        });
+        setState(() => _unreadCount = resultado.total);
       }
     } catch (_) {
       // Se conserva el último contador si falla temporalmente la API.
@@ -119,9 +120,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cerrar sesión'),
-        content: const Text(
-          '¿Deseas cerrar tu sesión de SaludMayor Blog?',
-        ),
+        content: const Text('¿Deseas cerrar tu sesión de SaludMayor Blog?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -142,9 +141,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
     try {
       await widget.auth.logout();
 
-      if (mounted) {
-        widget.onExit();
-      }
+      if (mounted) widget.onExit();
     } catch (_) {
       if (!mounted) return;
 
@@ -164,16 +161,10 @@ class _RoleHomePageState extends State<RoleHomePage> {
   void _select(int index) {
     if (index < 0 || index >= _items.length) return;
 
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
 
     if (_items[index].label == 'Mensajes') {
       _actualizarNoLeidos();
-    }
-
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
     }
   }
 
@@ -207,11 +198,14 @@ class _RoleHomePageState extends State<RoleHomePage> {
           : Drawer(
               child: SafeArea(
                 child: _NavigationMenu(
-                  user: widget.user,
+                  user: _user,
                   items: _items,
                   selectedIndex: _selectedIndex,
                   unreadCount: _unreadCount,
-                  onSelected: _select,
+                  onSelected: (index) {
+                    Navigator.of(context).pop();
+                    _select(index);
+                  },
                 ),
               ),
             ),
@@ -221,7 +215,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
             SizedBox(
               width: 270,
               child: _NavigationMenu(
-                user: widget.user,
+                user: _user,
                 items: _items,
                 selectedIndex: _selectedIndex,
                 unreadCount: _unreadCount,
@@ -230,7 +224,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
             ),
           Expanded(
             child: _PageContent(
-              user: widget.user,
+              user: _user,
               auth: widget.auth,
               mensajeService: _mensajeService,
               item: item,
@@ -238,6 +232,8 @@ class _RoleHomePageState extends State<RoleHomePage> {
               closing: _closing,
               onSelect: _select,
               onLogout: _logout,
+              onPasswordChanged: widget.onExit,
+              onUserChanged: (user) => setState(() => _user = user),
               onMessagesReturned: _actualizarNoLeidos,
             ),
           ),
@@ -248,11 +244,7 @@ class _RoleHomePageState extends State<RoleHomePage> {
 }
 
 class _NavigationItem {
-  const _NavigationItem(
-    this.label,
-    this.icon,
-    this.selectedIcon,
-  );
+  const _NavigationItem(this.label, this.icon, this.selectedIcon);
 
   final String label;
   final IconData icon;
@@ -279,12 +271,12 @@ class _NavigationMenu extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
 
     return Material(
-      color: const Color(0xFFF5F3E8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      color: AppColors.background,
+      child: ListView(
+        padding: EdgeInsets.zero,
         children: [
           Container(
-            color: const Color(0xFF24563E),
+            color: AppColors.primary,
             padding: const EdgeInsets.fromLTRB(20, 26, 20, 22),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,9 +300,7 @@ class _NavigationMenu extends StatelessWidget {
                   user.nombreCompleto,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFE5EBDD),
-                  ),
+                  style: const TextStyle(color: Color(0xFFE5EBDD)),
                 ),
                 Text(
                   user.esAdministrador ? 'Administrador' : 'Usuario',
@@ -325,10 +315,7 @@ class _NavigationMenu extends StatelessWidget {
           const SizedBox(height: 12),
           for (var i = 0; i < items.length; i++)
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 3,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
               child: ListTile(
                 selected: selectedIndex == i,
                 selectedTileColor: const Color(0xFFDCE9D9),
@@ -336,20 +323,16 @@ class _NavigationMenu extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 leading: Icon(
-                  selectedIndex == i
-                      ? items[i].selectedIcon
-                      : items[i].icon,
+                  selectedIndex == i ? items[i].selectedIcon : items[i].icon,
                   color: colors.primary,
                 ),
                 title: Text(items[i].label),
-                trailing: items[i].label == 'Mensajes' &&
-                        unreadCount > 0
+                trailing: items[i].label == 'Mensajes' && unreadCount > 0
                     ? _UnreadBadge(count: unreadCount)
                     : null,
                 onTap: () => onSelected(i),
               ),
             ),
-          const Spacer(),
           const Divider(),
           Padding(
             padding: const EdgeInsets.all(12),
@@ -375,17 +358,11 @@ class _UnreadBadge extends StatelessWidget {
     return Semantics(
       label: '$count mensajes sin leer',
       child: Container(
-        constraints: const BoxConstraints(
-          minWidth: 25,
-          minHeight: 25,
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 7,
-          vertical: 4,
-        ),
+        constraints: const BoxConstraints(minWidth: 25, minHeight: 25),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: const Color(0xFF24563E),
+          color: AppColors.primary,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -411,6 +388,8 @@ class _PageContent extends StatelessWidget {
     required this.closing,
     required this.onSelect,
     required this.onLogout,
+    required this.onPasswordChanged,
+    required this.onUserChanged,
     required this.onMessagesReturned,
   });
 
@@ -422,14 +401,22 @@ class _PageContent extends StatelessWidget {
   final bool closing;
   final ValueChanged<int> onSelect;
   final VoidCallback onLogout;
+  final VoidCallback onPasswordChanged;
+  final ValueChanged<UserModel> onUserChanged;
   final VoidCallback onMessagesReturned;
 
   @override
   Widget build(BuildContext context) {
     if (item.label == 'Publicaciones') {
-      return PublicationsPage(
-        api: auth.api,
-        isAdmin: isAdmin,
+      return PublicationsPage(api: auth.api, isAdmin: isAdmin);
+    }
+
+    if (item.label == 'Mi perfil') {
+      return ProfileViewPage(
+        auth: auth,
+        initialUser: user,
+        onUserChanged: onUserChanged,
+        onPasswordChanged: onPasswordChanged,
       );
     }
 
@@ -470,9 +457,9 @@ class _PageContent extends StatelessWidget {
                     Text(
                       isAdmin
                           ? 'Has iniciado sesión con permisos de administrador. '
-                              'Desde este menú podrás acceder a las herramientas administrativas.'
+                                'Desde este menú podrás acceder a las herramientas administrativas.'
                           : 'Desde este espacio podrás consultar las publicaciones '
-                              'y acceder a las funciones de tu cuenta.',
+                                'y acceder a las funciones de tu cuenta.',
                     ),
                     const SizedBox(height: 24),
                     const _FeatureNotice(),
@@ -502,6 +489,11 @@ class _PageContent extends StatelessWidget {
                             icon: Icons.chat_bubble_outline,
                             onTap: () => onSelect(5),
                           ),
+                          _QuickAction(
+                            label: 'Mi perfil',
+                            icon: Icons.person_outline,
+                            onTap: () => onSelect(6),
+                          ),
                         ],
                       ),
                     if (!isAdmin && item.label == 'Inicio')
@@ -530,9 +522,7 @@ class _PageContent extends StatelessWidget {
                     SizedBox(
                       width: 190,
                       child: PrimaryButton(
-                        text: closing
-                            ? 'Cerrando sesión...'
-                            : 'Cerrar sesión',
+                        text: closing ? 'Cerrando sesión...' : 'Cerrar sesión',
                         onPressed: closing ? null : onLogout,
                       ),
                     ),
@@ -558,17 +548,12 @@ class _FeatureNotice extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFE8EFE4),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFB7C9B5),
-        ),
+        border: Border.all(color: const Color(0xFFB7C9B5)),
       ),
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.info_outline,
-            color: Color(0xFF24563E),
-          ),
+          Icon(Icons.info_outline, color: Color(0xFF24563E)),
           SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -595,8 +580,8 @@ class _QuickAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => OutlinedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon),
-        label: Text(label),
-      );
+    onPressed: onTap,
+    icon: Icon(icon),
+    label: Text(label),
+  );
 }

@@ -10,11 +10,13 @@ import '../models/user_model.dart';
 
 class AuthService {
   const AuthService(this.api, {this.storage = const SessionStorage()});
+
   final ApiClient api;
   final SessionStorage storage;
 
   Future<UserModel> login(String correo, String contrasena) async {
     final body = RequestModels.login(correo, contrasena);
+
     if (kIsWeb) {
       final result = await api.json(
         'POST',
@@ -24,17 +26,22 @@ class AuthService {
       );
       return LoginModel.fromJson(jsonObject(result)).usuario;
     }
+
     final result = await api.json(
       'POST',
       '/auth/token',
       body: body,
       authenticated: false,
     );
+
     final token = TokenModel.fromJson(jsonObject(result));
+
     if (token.tokenType != 'bearer' || token.accessToken.isEmpty) {
       throw const ApiException('Respuesta de autenticación inválida.');
     }
+
     await storage.save(token.accessToken);
+
     try {
       return await currentUser();
     } catch (_) {
@@ -43,19 +50,41 @@ class AuthService {
     }
   }
 
-  Future<UserModel> currentUser() async =>
-      UserModel.fromJson(jsonObject(await api.json('GET', '/auth/me')));
+  Future<UserModel> currentUser() async {
+    final result = await api.json('GET', '/auth/me');
+    return UserModel.fromJson(jsonObject(result));
+  }
+
+  Future<UserModel> updateProfile({
+    required String nombre,
+    required String apellidoPaterno,
+    String? apellidoMaterno,
+  }) async {
+    final body = <String, dynamic>{
+      'nombre': nombre.trim(),
+      'apellido_paterno': apellidoPaterno.trim(),
+      'apellido_materno': apellidoMaterno?.trim().isEmpty ?? true
+          ? null
+          : apellidoMaterno!.trim(),
+    };
+
+    final result = await api.json('PATCH', '/usuarios/me', body: body);
+
+    return UserModel.fromJson(jsonObject(result));
+  }
 
   Future<UserModel?> restore() async {
     if (!kIsWeb && (await storage.read()) == null) {
       return null;
     }
+
     try {
       return await currentUser();
     } on ApiException catch (error) {
       if (error.statusCode != 401) {
         rethrow;
       }
+
       await storage.clear();
       return null;
     }
@@ -70,6 +99,7 @@ class AuthService {
         rethrow;
       }
     }
+
     await storage.clear();
   }
 }
