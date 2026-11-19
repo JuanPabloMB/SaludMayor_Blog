@@ -48,3 +48,6 @@ app.include_router(mensajes_router)
 
 from routers.configuracion import router as configuracion_router
 app.include_router(configuracion_router)
+
+from routers.panel import router as panel_router
+app.include_router(panel_router)

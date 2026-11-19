@@ -8,6 +8,7 @@ import '../services/mensaje_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/primary_button.dart';
 import 'admin_users_page.dart';
+import 'admin_dashboard_page.dart';
 import 'admin_categories_page.dart';
 import 'admin_config_page.dart';
 import '../widgets/blog_identity.dart';
@@ -410,6 +411,10 @@ class _PageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isAdmin && item.label == 'Inicio') {
+      return AdminDashboardPage(api: auth.api, user: user, onSelect: onSelect);
+    }
+
     if (item.label == 'Publicaciones') {
       return PublicationsPage(api: auth.api, isAdmin: isAdmin);
     }
