@@ -324,7 +324,10 @@ class _PostEditorPageState extends State<PostEditorPage> {
                             .map(
                               (category) => DropdownMenuItem<int>(
                                 value: category.id,
-                                child: Text(category.nombre),
+                                child: Text(
+                                  category.nombre,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             )
                             .toList(),

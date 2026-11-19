@@ -174,18 +174,23 @@ class _ConversationsPageState extends State<ConversationsPage> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 24, 24, 90),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _encabezado(theme),
-                      const SizedBox(height: 24),
-                      Expanded(child: _contenido()),
-                    ],
+                  child: RefreshIndicator(
+                    onRefresh: _cargarConversaciones,
+                    color: AppColors.primary,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        _encabezado(theme),
+                        const SizedBox(height: 24),
+                        _contenido(),
+                      ],
+                    ),
                   ),
                 ),
                 Positioned(
-                  right: 24,
-                  bottom: 24,
+                  right: 16,
+                  left: 16,
+                  bottom: 16,
                   child: FloatingActionButton.extended(
                     onPressed: _loadingDestinatarios ? null : _nuevoMensaje,
                     backgroundColor: AppColors.primary,
@@ -322,17 +327,14 @@ class _ConversationsPageState extends State<ConversationsPage> {
       return _estadoVacio();
     }
 
-    return RefreshIndicator(
-      onRefresh: _cargarConversaciones,
-      color: AppColors.primary,
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: _conversaciones.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 10),
-        itemBuilder: (context, index) {
-          return _tarjetaConversacion(_conversaciones[index]);
-        },
-      ),
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _conversaciones.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        return _tarjetaConversacion(_conversaciones[index]);
+      },
     );
   }
 
@@ -556,6 +558,7 @@ class _SelectorDestinatarioState extends State<_SelectorDestinatario> {
     final usuarios = _filtrados;
 
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       backgroundColor: const Color(0xFFFFFDF7),
       title: const Text(
         'Nuevo mensaje',
@@ -563,65 +566,57 @@ class _SelectorDestinatarioState extends State<_SelectorDestinatario> {
       ),
       content: SizedBox(
         width: 420,
-        height: 430,
-        child: Column(
-          children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Buscar usuario...',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: AppColors.background,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Buscar usuario...',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
+                onChanged: (value) {
+                  setState(() => _query = value);
+                },
               ),
-              onChanged: (value) {
-                setState(() => _query = value);
-              },
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: usuarios.isEmpty
-                  ? const Center(child: Text('No se encontraron usuarios.'))
-                  : ListView.separated(
-                      itemCount: usuarios.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final usuario = usuarios[index];
-
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                          ),
-                          leading: CircleAvatar(
-                            backgroundColor: const Color(0xFFDCE9D9),
-                            foregroundColor: AppColors.primary,
-                            child: Text(
-                              usuario.nombre.isNotEmpty
-                                  ? usuario.nombre[0].toUpperCase()
-                                  : '?',
-                            ),
-                          ),
-                          title: Text(
-                            usuario.nombreCompleto,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: const Icon(
-                            Icons.chevron_right,
-                            color: AppColors.primary,
-                          ),
-                          onTap: () {
-                            Navigator.pop(context, usuario);
-                          },
-                        );
-                      },
+              const SizedBox(height: 12),
+              if (usuarios.isEmpty)
+                const Center(child: Text('No se encontraron usuarios.'))
+              else
+                for (final usuario in usuarios)
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    leading: CircleAvatar(
+                      backgroundColor: const Color(0xFFDCE9D9),
+                      foregroundColor: AppColors.primary,
+                      child: Text(
+                        usuario.nombre.isNotEmpty
+                            ? usuario.nombre[0].toUpperCase()
+                            : '?',
+                      ),
                     ),
-            ),
-          ],
+                    title: Text(
+                      usuario.nombreCompleto,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: const Icon(
+                      Icons.chevron_right,
+                      color: AppColors.primary,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context, usuario);
+                    },
+                  ),
+            ],
+          ),
         ),
       ),
       actions: [

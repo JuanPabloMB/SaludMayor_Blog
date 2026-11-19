@@ -123,6 +123,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
     return PopScope(
       canPop: !_busy,
       child: AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         title: const Text('Cambiar contraseña'),
         scrollable: true,
         content: SizedBox(

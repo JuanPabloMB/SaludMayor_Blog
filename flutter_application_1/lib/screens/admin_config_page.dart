@@ -125,6 +125,8 @@ class _AdminConfigPageState extends State<AdminConfigPage> {
     final yes = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         title: const Text('Vista previa del logotipo'),
         content: Image.memory(
           bytes,

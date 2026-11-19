@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import '../widgets/admin_drawer.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -47,29 +49,46 @@ class _ProfilePageState extends State<ProfilePage> {
     final id = _usuario['id_usr'];
     if (id == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se recibió el identificador del usuario. Vuelve a iniciar sesión.')),
+        const SnackBar(
+          content: Text(
+            'No se recibió el identificador del usuario. Vuelve a iniciar sesión.',
+          ),
+        ),
       );
       return;
     }
     setState(() => _cargando = true);
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/usuarios/$id'),
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-        body: jsonEncode({
-          'nom_usr': _nombre.text.trim(),
-          'mail': _correo.text.trim().toLowerCase(),
-          'dir_usr': _direccion.text.trim().isEmpty ? null : _direccion.text.trim(),
-          'tip_usr': (_usuario['tip_usr'] as num?)?.toInt() ?? 1,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/usuarios/$id'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'nom_usr': _nombre.text.trim(),
+              'mail': _correo.text.trim().toLowerCase(),
+              'dir_usr': _direccion.text.trim().isEmpty
+                  ? null
+                  : _direccion.text.trim(),
+              'tip_usr': (_usuario['tip_usr'] as num?)?.toInt() ?? 1,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
-      final dynamic data = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+      final dynamic data = response.body.isNotEmpty
+          ? jsonDecode(response.body)
+          : null;
       if (response.statusCode != 200) {
         final detail = data is Map ? data['detail'] : null;
-        throw Exception(detail?.toString() ?? 'Error HTTP ${response.statusCode}');
+        throw Exception(
+          detail?.toString() ?? 'Error HTTP ${response.statusCode}',
+        );
       }
-      if (data is Map<String, dynamic>) _usuario = Map<String, dynamic>.from(data);
+      if (data is Map<String, dynamic>) {
+        _usuario = Map<String, dynamic>.from(data);
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Perfil actualizado correctamente')),
@@ -114,7 +133,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           border: OutlineInputBorder(),
                         ),
                         validator: (v) => v == null || v.trim().length < 2
-                            ? 'Ingresa un nombre válido' : null,
+                            ? 'Ingresa un nombre válido'
+                            : null,
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
@@ -125,7 +145,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           border: OutlineInputBorder(),
                         ),
                         validator: (v) => v == null || !v.contains('@')
-                            ? 'Ingresa un correo válido' : null,
+                            ? 'Ingresa un correo válido'
+                            : null,
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
@@ -139,7 +160,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       ElevatedButton.icon(
                         onPressed: _cargando ? null : _guardar,
                         icon: const Icon(Icons.save),
-                        label: Text(_cargando ? 'Guardando...' : 'Guardar cambios'),
+                        label: Text(
+                          _cargando ? 'Guardando...' : 'Guardar cambios',
+                        ),
                       ),
                     ],
                   ),

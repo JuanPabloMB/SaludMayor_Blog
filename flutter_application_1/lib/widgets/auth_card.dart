@@ -8,7 +8,9 @@ class AuthCard extends StatelessWidget {
     child: ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 440),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(
+          MediaQuery.sizeOf(context).width < 400 ? 16 : 24,
+        ),
         child: SizedBox(width: double.infinity, child: child),
       ),
     ),

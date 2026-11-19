@@ -210,6 +210,11 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
+          scrollable: true,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
           backgroundColor: const Color(0xFFFFFDF7),
           title: const Text(
             'Vista previa',

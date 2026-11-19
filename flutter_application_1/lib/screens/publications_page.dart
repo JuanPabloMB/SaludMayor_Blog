@@ -188,13 +188,14 @@ class _PublicationsPageState extends State<PublicationsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Expanded(
-                      child: Text(
-                        'Publicaciones',
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
+                    Text(
+                      'Publicaciones',
+                      style: Theme.of(context).textTheme.headlineMedium,
                     ),
                     if (widget.isAdmin)
                       FilledButton.icon(
@@ -257,11 +258,12 @@ class _PublicationsPageState extends State<PublicationsPage> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    Text(
-                      '${posts.length} ${posts.length == 1 ? 'publicación' : 'publicaciones'}',
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Expanded(
+                      child: Text(
+                        '${posts.length} ${posts.length == 1 ? 'publicación' : 'publicaciones'}',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                     ),
-                    const Spacer(),
                     IconButton(
                       tooltip: 'Actualizar publicaciones',
                       onPressed: _load,
@@ -374,15 +376,15 @@ class _PostCard extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(post.descripcion, style: theme.textTheme.bodyMedium),
                       const SizedBox(height: 14),
-                      Row(
+                      Wrap(
+                        spacing: 7,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           const Icon(Icons.account_circle_outlined, size: 20),
-                          const SizedBox(width: 7),
-                          Expanded(
-                            child: Text(
-                              post.autor.nombreCompleto,
-                              style: theme.textTheme.bodySmall,
-                            ),
+                          Text(
+                            post.autor.nombreCompleto,
+                            style: theme.textTheme.bodySmall,
                           ),
                           const Icon(Icons.open_in_new, size: 18),
                           const SizedBox(width: 5),
@@ -402,15 +404,16 @@ class _PostCard extends StatelessWidget {
             const Divider(height: 1),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 4,
                 children: [
                   TextButton.icon(
                     onPressed: onEdit,
                     icon: const Icon(Icons.edit_outlined),
                     label: const Text('Editar'),
                   ),
-                  const SizedBox(width: 8),
                   TextButton.icon(
                     onPressed: onDelete,
                     style: TextButton.styleFrom(

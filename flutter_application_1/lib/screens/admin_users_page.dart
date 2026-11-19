@@ -293,23 +293,32 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     String value,
     Map<String, String> opciones,
     ValueChanged<String> cambiar,
-  ) => Column(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(label),
-      DropdownButton<String>(
-        value: value,
-        items: opciones.entries
-            .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-            .toList(),
-        onChanged: (v) {
-          if (v != null) {
-            cambiar(v);
-          }
-        },
-      ),
-    ],
+  ) => SizedBox(
+    width: 220,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label),
+        DropdownButton<String>(
+          isExpanded: true,
+          value: value,
+          items: opciones.entries
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e.key,
+                  child: Text(e.value, overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(),
+          onChanged: (v) {
+            if (v != null) {
+              cambiar(v);
+            }
+          },
+        ),
+      ],
+    ),
   );
 }
 

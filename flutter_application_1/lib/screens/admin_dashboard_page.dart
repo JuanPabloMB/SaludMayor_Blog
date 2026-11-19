@@ -103,9 +103,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
-            final columnas = constraints.maxWidth >= 850
+            final escala = MediaQuery.textScalerOf(context).scale(16) / 16;
+            final anchoDisponible = constraints.maxWidth / escala;
+            final columnas = anchoDisponible >= 850
                 ? 3
-                : constraints.maxWidth >= 420
+                : anchoDisponible >= 420
                 ? 2
                 : 1;
             return Wrap(

@@ -165,155 +165,136 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1000),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Categorías',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Text(
+                  'Categorías',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Text('Administra la clasificación de las publicaciones.'),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: _busy ? null : () => _edit(),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Nueva categoría'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _busy ? null : _load,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Actualizar'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _search,
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                    labelText: 'Buscar categoría',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  initialValue: _filter,
+                  decoration: const InputDecoration(labelText: 'Estado'),
+                  items: const [
+                    DropdownMenuItem(value: 'todos', child: Text('Todas')),
+                    DropdownMenuItem(value: 'activas', child: Text('Activas')),
+                    DropdownMenuItem(
+                      value: 'inactivas',
+                      child: Text('Inactivas'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _filter = value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                Text('${visible.length} de ${_items.length} categorías'),
+                if (_busy) const LinearProgressIndicator(),
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(color: AppColors.errorText),
                     ),
                   ),
-                  const Text(
-                    'Administra la clasificación de las publicaciones.',
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 8,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: _busy ? null : () => _edit(),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Nueva categoría'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: _busy ? null : _load,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Actualizar'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _search,
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      labelText: 'Buscar categoría',
-                      prefixIcon: Icon(Icons.search),
+                if (visible.isEmpty)
+                  Center(
+                    child: Text(
+                      _busy ? 'Cargando...' : 'No hay categorías para mostrar.',
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: _filter,
-                    decoration: const InputDecoration(labelText: 'Estado'),
-                    items: const [
-                      DropdownMenuItem(value: 'todos', child: Text('Todas')),
-                      DropdownMenuItem(
-                        value: 'activas',
-                        child: Text('Activas'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'inactivas',
-                        child: Text('Inactivas'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() => _filter = value);
-                      }
+                  )
+                else
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: visible.length,
+                    itemBuilder: (context, index) {
+                      final item = visible[index];
+                      return Card(
+                        color: AppColors.surface,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.nombre,
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              Text(item.descripcion ?? 'Sin descripción'),
+                              Text(
+                                'ID: ${item.id} · ${item.estado ? 'Activa' : 'Inactiva'}',
+                                style: TextStyle(
+                                  color: item.estado
+                                      ? AppColors.successText
+                                      : AppColors.errorText,
+                                ),
+                              ),
+                              Wrap(
+                                spacing: 8,
+                                children: [
+                                  TextButton.icon(
+                                    onPressed: _busy ? null : () => _edit(item),
+                                    icon: const Icon(Icons.edit_outlined),
+                                    label: const Text('Editar'),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: _busy
+                                        ? null
+                                        : () => _toggle(item),
+                                    icon: Icon(
+                                      item.estado
+                                          ? Icons.block
+                                          : Icons.check_circle_outline,
+                                    ),
+                                    label: Text(
+                                      item.estado ? 'Desactivar' : 'Activar',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
                     },
                   ),
-                  const SizedBox(height: 12),
-                  Text('${visible.length} de ${_items.length} categorías'),
-                  if (_busy) const LinearProgressIndicator(),
-                  if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        _error!,
-                        style: const TextStyle(color: AppColors.errorText),
-                      ),
-                    ),
-                  Expanded(
-                    child: visible.isEmpty
-                        ? Center(
-                            child: Text(
-                              _busy
-                                  ? 'Cargando...'
-                                  : 'No hay categorías para mostrar.',
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: visible.length,
-                            itemBuilder: (context, index) {
-                              final item = visible[index];
-                              return Card(
-                                color: AppColors.surface,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.nombre,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge,
-                                      ),
-                                      Text(
-                                        item.descripcion ?? 'Sin descripción',
-                                      ),
-                                      Text(
-                                        'ID: ${item.id} · ${item.estado ? 'Activa' : 'Inactiva'}',
-                                        style: TextStyle(
-                                          color: item.estado
-                                              ? AppColors.successText
-                                              : AppColors.errorText,
-                                        ),
-                                      ),
-                                      Wrap(
-                                        spacing: 8,
-                                        children: [
-                                          TextButton.icon(
-                                            onPressed: _busy
-                                                ? null
-                                                : () => _edit(item),
-                                            icon: const Icon(
-                                              Icons.edit_outlined,
-                                            ),
-                                            label: const Text('Editar'),
-                                          ),
-                                          TextButton.icon(
-                                            onPressed: _busy
-                                                ? null
-                                                : () => _toggle(item),
-                                            icon: Icon(
-                                              item.estado
-                                                  ? Icons.block
-                                                  : Icons.check_circle_outline,
-                                            ),
-                                            label: Text(
-                                              item.estado
-                                                  ? 'Desactivar'
-                                                  : 'Activar',
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
         ),
@@ -344,6 +325,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
+    insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     title: Text(widget.item == null ? 'Nueva categoría' : 'Editar categoría'),
     content: SizedBox(
       width: 480,

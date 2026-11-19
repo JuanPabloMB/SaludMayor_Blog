@@ -86,9 +86,8 @@ class _AddBlogPageState extends State<AddBlogPage> {
     final foto = _foto;
     final bytes = _imagenBytes;
     if (foto == null || bytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Agrega una fotografía')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Agrega una fotografía')));
       return;
     }
 
@@ -101,20 +100,14 @@ class _AddBlogPageState extends State<AddBlogPage> {
         ..fields['titulo'] = _titulo.text.trim()
         ..fields['descripcion'] = _descripcion.text.trim()
         ..files.add(
-          http.MultipartFile.fromBytes(
-            'imagen',
-            bytes,
-            filename: foto.name,
-          ),
+          http.MultipartFile.fromBytes('imagen', bytes, filename: foto.name),
         );
 
       if (tags.isNotEmpty) {
         solicitud.fields['tags'] = tags;
       }
 
-      final respuesta = await http.Response.fromStream(
-        await solicitud.send(),
-      );
+      final respuesta = await http.Response.fromStream(await solicitud.send());
 
       if (respuesta.statusCode != 201) {
         var mensaje = 'La API respondió con HTTP ${respuesta.statusCode}';
@@ -195,10 +188,9 @@ class _AddBlogPageState extends State<AddBlogPage> {
                           labelText: 'Título',
                           border: OutlineInputBorder(),
                         ),
-                        validator: (valor) =>
-                            (valor ?? '').trim().length < 2
-                                ? 'Ingresa un título de al menos 2 caracteres'
-                                : null,
+                        validator: (valor) => (valor ?? '').trim().length < 2
+                            ? 'Ingresa un título de al menos 2 caracteres'
+                            : null,
                       ),
                       const SizedBox(height: 14),
                       TextFormField(

@@ -21,7 +21,12 @@ class WelcomePage extends StatelessWidget {
   final ValueChanged<UserModel> onLogin;
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(BlogIdentity.nameOf(context))),
+    appBar: AppBar(
+      title: Text(
+        BlogIdentity.nameOf(context),
+        overflow: TextOverflow.ellipsis,
+      ),
+    ),
     body: SafeArea(
       child: Center(
         child: SingleChildScrollView(

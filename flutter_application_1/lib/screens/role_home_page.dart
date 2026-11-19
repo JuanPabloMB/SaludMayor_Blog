@@ -185,15 +185,17 @@ class _RoleHomePageState extends State<RoleHomePage> {
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Center(
-              child: Text(
-                _isAdmin ? 'Administrador' : 'Usuario',
-                style: Theme.of(context).textTheme.labelLarge,
+          if (wide)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Center(
+                child: Text(
+                  _isAdmin ? 'Administrador' : 'Usuario',
+                  style: Theme.of(context).textTheme.labelLarge
+                      ?.copyWith(color: Colors.white),
+                ),
               ),
             ),
-          ),
           IconButton(
             tooltip: 'Cerrar sesión',
             onPressed: _closing ? null : _logout,
@@ -217,35 +219,38 @@ class _RoleHomePageState extends State<RoleHomePage> {
                 ),
               ),
             ),
-      body: Row(
-        children: [
-          if (wide)
-            SizedBox(
-              width: 270,
-              child: _NavigationMenu(
+      body: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            if (wide)
+              SizedBox(
+                width: 270,
+                child: _NavigationMenu(
+                  user: _user,
+                  items: _items,
+                  selectedIndex: _selectedIndex,
+                  unreadCount: _unreadCount,
+                  onSelected: _select,
+                ),
+              ),
+            Expanded(
+              child: _PageContent(
                 user: _user,
-                items: _items,
-                selectedIndex: _selectedIndex,
-                unreadCount: _unreadCount,
-                onSelected: _select,
+                auth: widget.auth,
+                mensajeService: _mensajeService,
+                item: item,
+                isAdmin: _isAdmin,
+                closing: _closing,
+                onSelect: _select,
+                onLogout: _logout,
+                onPasswordChanged: widget.onExit,
+                onUserChanged: (user) => setState(() => _user = user),
+                onMessagesReturned: _actualizarNoLeidos,
               ),
             ),
-          Expanded(
-            child: _PageContent(
-              user: _user,
-              auth: widget.auth,
-              mensajeService: _mensajeService,
-              item: item,
-              isAdmin: _isAdmin,
-              closing: _closing,
-              onSelect: _select,
-              onLogout: _logout,
-              onPasswordChanged: widget.onExit,
-              onUserChanged: (user) => setState(() => _user = user),
-              onMessagesReturned: _actualizarNoLeidos,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
