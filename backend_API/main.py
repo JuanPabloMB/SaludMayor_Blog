@@ -5,9 +5,13 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import SQLAlchemyError
 from core.config import settings
+from core.http_security import HttpSecurityMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from routers.auth import router as auth_router
 
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION, debug=False)
+app.add_middleware(HttpSecurityMiddleware, auth_limit=settings.AUTH_REQUESTS_PER_MINUTE)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
 app.add_middleware(CORSMiddleware, allow_origins=settings.CORS_ORIGINS,
                    allow_credentials=True, allow_methods=['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
                    allow_headers=['Content-Type','Authorization'])

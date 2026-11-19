@@ -14,7 +14,7 @@ router = APIRouter(prefix='/auth', tags=['Autenticacion'])
 def login(datos: LoginSolicitud, request: Request, response: Response, db: Db):
     validar_origen(request)
     usuario, sesion, token = iniciar_sesion(db, datos, 'cookie')
-    response.set_cookie(COOKIE_NAME, token, httponly=True, secure=request.url.scheme == 'https',
+    response.set_cookie(COOKIE_NAME, token, httponly=True, secure=settings.COOKIE_SECURE or request.url.scheme == 'https',
                         samesite='lax', max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60, path='/')
     response.headers['Cache-Control'] = 'no-store'
     return LoginRespuesta(usuario=UsuarioRespuesta.model_validate(usuario),
@@ -35,5 +35,5 @@ def me(response: Response, usuario: Annotated[Usuario, Depends(get_current_user)
 def logout(request: Request, response: Response, db: Db,
            sesion: Annotated[Sesion, Depends(get_current_session)]):
     cerrar_sesion(db, sesion)
-    response.delete_cookie(COOKIE_NAME, path='/', httponly=True, samesite='lax', secure=request.url.scheme == 'https')
+    response.delete_cookie(COOKIE_NAME, path='/', httponly=True, samesite='lax', secure=settings.COOKIE_SECURE or request.url.scheme == 'https')
     return RespuestaMensaje(mensaje='Sesion cerrada correctamente')

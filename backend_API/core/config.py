@@ -44,6 +44,10 @@ class Settings(BaseSettings):
         gt=0
     )
 
+    ALLOWED_HOSTS: list[str] = ["localhost", "127.0.0.1", "10.0.2.2", "testserver"]
+    AUTH_REQUESTS_PER_MINUTE: int = Field(default=20, ge=1, le=1000)
+    COOKIE_SECURE: bool = False
+
     # Flutter Web
     CORS_ORIGINS: list[str] = [
         "http://localhost:8080"

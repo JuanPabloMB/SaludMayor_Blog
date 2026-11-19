@@ -28,7 +28,7 @@ def editar(datos: UsuarioActualizar, db: Db, usuario: Actual):
 @router.put('/me/contrasena', response_model=RespuestaMensaje)
 def contrasena(datos: CambioContrasena, db: Db, usuario: Actual, request: Request, response: Response):
     servicio.cambiar_contrasena(db, usuario, datos)
-    response.delete_cookie(COOKIE_NAME, path='/', httponly=True, samesite='lax', secure=request.url.scheme == 'https')
+    response.delete_cookie(COOKIE_NAME, path='/', httponly=True, samesite='lax', secure=settings.COOKIE_SECURE or request.url.scheme == 'https')
     return RespuestaMensaje(mensaje='Contrasena actualizada. Inicie sesion nuevamente')
 
 @router.put('/me/foto', response_model=UsuarioRespuesta)
