@@ -1,11 +1,11 @@
 {
-    "name": "flutter_application_1",
-    "short_name": "flutter_application_1",
+    "name": "SaludMayor Blog",
+    "short_name": "SaludMayor",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F5F3E8",
+    "theme_color": "#24563E",
+    "description": "Blog privado de salud, bienestar y cuidado de las personas adultas mayores.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
