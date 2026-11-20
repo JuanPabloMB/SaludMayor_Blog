@@ -230,16 +230,22 @@ class _RoleHomePageState extends State<RoleHomePage> {
       body: SafeArea(
         top: false,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (wide && _menuVisible)
-              SizedBox(
-                width: 270,
-                child: _NavigationMenu(
-                  user: _user,
-                  items: _items,
-                  selectedIndex: _selectedIndex,
-                  unreadCount: _unreadCount,
-                  onSelected: _select,
+            if (wide)
+              Visibility(
+                visible: _menuVisible,
+                maintainState: true,
+                child: SizedBox(
+                  key: const ValueKey('menu-lateral-escritorio'),
+                  width: 270,
+                  child: _NavigationMenu(
+                    user: _user,
+                    items: _items,
+                    selectedIndex: _selectedIndex,
+                    unreadCount: _unreadCount,
+                    onSelected: _select,
+                  ),
                 ),
               ),
             Expanded(
@@ -294,73 +300,76 @@ class _NavigationMenu extends StatelessWidget {
 
     return Material(
       color: AppColors.background,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          Container(
-            color: AppColors.primary,
-            padding: const EdgeInsets.fromLTRB(20, 26, 20, 22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const BlogLogo(size: 38, color: Colors.white),
-                const SizedBox(height: 12),
-                Text(
-                  BlogIdentity.nameOf(context),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
+      child: SingleChildScrollView(
+        primary: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              color: AppColors.primary,
+              padding: const EdgeInsets.fromLTRB(20, 26, 20, 22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const BlogLogo(size: 38, color: Colors.white),
+                  const SizedBox(height: 12),
+                  Text(
+                    BlogIdentity.nameOf(context),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 19,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  user.nombreCompleto,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Color(0xFFE5EBDD)),
-                ),
-                Text(
-                  user.esAdministrador ? 'Administrador' : 'Usuario',
-                  style: const TextStyle(
-                    color: Color(0xFFE5EBDD),
-                    fontSize: 12,
+                  const SizedBox(height: 6),
+                  Text(
+                    user.nombreCompleto,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Color(0xFFE5EBDD)),
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          for (var i = 0; i < items.length; i++)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-              child: ListTile(
-                selected: selectedIndex == i,
-                selectedTileColor: const Color(0xFFDCE9D9),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                leading: Icon(
-                  selectedIndex == i ? items[i].selectedIcon : items[i].icon,
-                  color: colors.primary,
-                ),
-                title: Text(items[i].label),
-                trailing: items[i].label == 'Mensajes' && unreadCount > 0
-                    ? _UnreadBadge(count: unreadCount)
-                    : null,
-                onTap: () => onSelected(i),
+                  Text(
+                    user.esAdministrador ? 'Administrador' : 'Usuario',
+                    style: const TextStyle(
+                      color: Color(0xFFE5EBDD),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
             ),
-          const Divider(),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(
-              'Acceso ${user.esAdministrador ? 'administrativo' : 'personal'}',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
+            const SizedBox(height: 12),
+            for (var i = 0; i < items.length; i++)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                child: ListTile(
+                  selected: selectedIndex == i,
+                  selectedTileColor: const Color(0xFFDCE9D9),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  leading: Icon(
+                    selectedIndex == i ? items[i].selectedIcon : items[i].icon,
+                    color: colors.primary,
+                  ),
+                  title: Text(items[i].label),
+                  trailing: items[i].label == 'Mensajes' && unreadCount > 0
+                      ? _UnreadBadge(count: unreadCount)
+                      : null,
+                  onTap: () => onSelected(i),
+                ),
+              ),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                'Acceso ${user.esAdministrador ? 'administrativo' : 'personal'}',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -378,13 +387,13 @@ class _UnreadBadge extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(minWidth: 25, minHeight: 25),
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: AppColors.primary,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           count > 99 ? '99+' : '$count',
+          textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 12,
