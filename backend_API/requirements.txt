@@ -10,4 +10,4 @@ python-multipart
 pwdlib[argon2]
 PyJWT
 email-validator
-Pillow
+Pillow# Revision final del codigo

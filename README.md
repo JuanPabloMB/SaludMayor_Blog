@@ -241,3 +241,4 @@ Antes de un despliegue público, configurar HTTPS, cookies seguras, orígenes y 
 - Documentación de diseño de interfaces.
 
 Proyecto académico — Universidad Tecnológica de Querétaro, 2026.
+<!-- Revision final del codigo -->

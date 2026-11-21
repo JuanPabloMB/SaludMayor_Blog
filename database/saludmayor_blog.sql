@@ -131,4 +131,4 @@ CREATE TABLE sesiones (
 ) ENGINE=InnoDB;
 
 
-SHOW TABLES;
+SHOW TABLES;-- Revision final del codigo
