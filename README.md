@@ -1,6 +1,6 @@
 # SaludMayor Blog
 
-Blog privado de información sobre salud, bienestar y cuidado de las personas adultas mayores. Proyecto académico de Trayectoria Vital, S. A. de C. V., desarrollado en la Universidad Tecnológica de Querétaro (UTEQ), durante el cuatrimestre septiembre–diciembre de 2026.
+Blog de información sobre salud, bienestar y cuidado de las personas adultas mayores. Proyecto académico de Trayectoria Vital, S. A. de C. V., desarrollado en la Universidad Tecnológica de Querétaro (UTEQ), durante el cuatrimestre septiembre–diciembre de 2026.
 
 ## Objetivo y alcance
 
